@@ -80,14 +80,14 @@
     mempool: MempoolTx[] = [];
     chainHeight = 0;
     miningProgress = 0;
-    nextBlockTime = Date.now() + 8000; // Initialize with normal mining time
+    nextBlockTime = Date.now() + 5000; // Initialize with normal mining time
     lastBlockTime = 0; // Track last block mining time
     consensusRounds: {x: number, y: number, radius: number, opacity: number}[] = [];
     userTransactions: Node[] = [];
     
     // Mining speed control
-    baseMiningTime = 8000; // Base time: 8 seconds when idle
-    currentMiningTime = 8000;
+    baseMiningTime = 5000; // Base time: 5 seconds when idle
+    currentMiningTime = 5000;
     miningSpeedMultiplier = 1;
     userActivityLevel = 0;
     lastUserActivity = 0;
@@ -479,7 +479,7 @@
           await api.updateMiningStats({
             speedMultiplier: validSpeedMultiplier,
             blocksMinedCount: Math.max(this.chains.reduce((acc, chain) => acc + chain.blocks.length, 0) || 0, 0),
-            averageMiningTime: Math.max(Number(this.currentMiningTime) || 8000, 1)
+            averageMiningTime: Math.max(Number(this.currentMiningTime) || 5000, 1)
           });
         } catch (error) {
           console.error('API block sync failed:', error);
@@ -595,8 +595,8 @@
       }
       
       // Update mining progress with dynamic speed
-      // Ensure we don't mine too quickly (minimum 1 second between blocks)
-      if (now >= this.nextBlockTime && now - this.lastBlockTime > 1000) {
+      // Prevent burst mining: ensure minimum 1 second between blocks, allow first block
+      if (now >= this.nextBlockTime && (this.lastBlockTime === 0 || now - this.lastBlockTime > 1000)) {
         this.mineBlock();
         this.lastBlockTime = now;
       } else if (this.nextBlockTime > now) {

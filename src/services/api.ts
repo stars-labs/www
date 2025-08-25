@@ -1,7 +1,7 @@
 // API Service for backend communication
 
 const API_BASE_URL = import.meta.env.DEV 
-  ? 'http://localhost:8787/api' 
+  ? 'http://localhost:43251/api' 
   : '/api'; // Use relative path for same-origin requests
 
 export interface Transaction {

@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { timing } from 'hono/timing';
 import { drizzle } from 'drizzle-orm/d1';
+import * as schema from './db/schema';
 
 import blockchainRoutes from './routes/blockchain';
 import transactionRoutes from './routes/transactions';
@@ -31,7 +32,7 @@ app.use(
 
 // Database middleware
 app.use('*', async (c, next) => {
-  const db = drizzle(c.env.DB);
+  const db = drizzle(c.env.DB, { schema });
   c.set('db', db);
   await next();
 });

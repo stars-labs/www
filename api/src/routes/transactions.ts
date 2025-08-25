@@ -34,7 +34,8 @@ app.get('/', async (c) => {
   const limit = Number(c.req.query('limit')) || 20;
   const offset = Number(c.req.query('offset')) || 0;
   const status = c.req.query('status');
-  const userCreated = c.req.query('userCreated') === 'true';
+  const userCreatedParam = c.req.query('userCreated');
+  const userCreated = userCreatedParam === 'true';
 
   try {
     let query = db.select().from(transactions);
@@ -43,7 +44,7 @@ app.get('/', async (c) => {
     if (status) {
       conditions.push(eq(transactions.status, status as any));
     }
-    if (userCreated !== undefined) {
+    if (userCreatedParam !== undefined) {
       conditions.push(eq(transactions.userCreated, userCreated));
     }
     
@@ -52,7 +53,7 @@ app.get('/', async (c) => {
     }
 
     const result = await query
-      .orderBy(desc(transactions.createdAt))
+      .orderBy(desc(transactions.id))
       .limit(limit)
       .offset(offset);
 
@@ -97,7 +98,8 @@ app.post('/', zValidator('json', createTransactionSchema), async (c) => {
   try {
     const newTransaction: NewTransaction = {
       ...data,
-      status: data.status || 'pending'
+      status: data.status || 'pending',
+      createdAt: new Date()
     };
 
     const [created] = await db
@@ -155,7 +157,7 @@ app.get('/stats/summary', async (c) => {
     const recentTransactions = await db
       .select()
       .from(transactions)
-      .orderBy(desc(transactions.createdAt))
+      .orderBy(desc(transactions.id))
       .limit(10);
 
     return c.json({
@@ -177,7 +179,7 @@ app.get('/mempool/pending', async (c) => {
       .select()
       .from(transactions)
       .where(eq(transactions.status, 'pending'))
-      .orderBy(desc(transactions.createdAt))
+      .orderBy(desc(transactions.id))
       .limit(50);
 
     return c.json({
