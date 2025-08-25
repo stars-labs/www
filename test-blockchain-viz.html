@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Blockchain Visualization Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: monospace;
+            background: #000;
+            color: #fff;
+        }
+        .test-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        .instructions {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-info">
+        <h3>Test Status</h3>
+        <div id="blockCount">Blocks: 0</div>
+        <div id="miningSpeed">Mining Speed: 1x</div>
+        <div id="lastBlockTime">Last Block: Never</div>
+        <div id="timeBetweenBlocks">Block Interval: N/A</div>
+    </div>
+    
+    <div class="instructions">
+        <h3>Test Instructions</h3>
+        <p>1. Wait and observe regular block mining (should be ~8 seconds)</p>
+        <p>2. Click rapidly to boost mining speed</p>
+        <p>3. Refresh page and check no burst mining occurs</p>
+        <p>4. Let blocks reach top of screen and verify they wrap around</p>
+    </div>
+
+    <script>
+        // Simple test monitoring script
+        let blockCount = 0;
+        let lastBlockTime = null;
+        let blockTimes = [];
+
+        // Monitor API calls to count blocks
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+            const [url, options] = args;
+            if (url.includes('/api/blockchain/blocks') && options?.method === 'POST') {
+                blockCount++;
+                const now = Date.now();
+                if (lastBlockTime) {
+                    const interval = now - lastBlockTime;
+                    blockTimes.push(interval);
+                    // Keep only last 5 intervals
+                    if (blockTimes.length > 5) {
+                        blockTimes.shift();
+                    }
+                }
+                lastBlockTime = now;
+                updateTestInfo();
+            }
+            return originalFetch.apply(this, args);
+        };
+
+        function updateTestInfo() {
+            document.getElementById('blockCount').textContent = `Blocks: ${blockCount}`;
+            
+            if (blockTimes.length > 0) {
+                const avgInterval = blockTimes.reduce((a, b) => a + b, 0) / blockTimes.length;
+                document.getElementById('timeBetweenBlocks').textContent = 
+                    `Block Interval: ${(avgInterval / 1000).toFixed(1)}s (avg of ${blockTimes.length})`;
+            }
+            
+            if (lastBlockTime) {
+                const timeSince = (Date.now() - lastBlockTime) / 1000;
+                document.getElementById('lastBlockTime').textContent = 
+                    `Last Block: ${timeSince.toFixed(1)}s ago`;
+            }
+        }
+
+        // Update display every second
+        setInterval(updateTestInfo, 1000);
+        
+        console.log('Blockchain visualization test loaded. Monitor block mining intervals.');
+    </script>
+</body>
+</html>

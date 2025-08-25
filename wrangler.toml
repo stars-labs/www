@@ -1,0 +1,11 @@
+name = "starslab-site"
+account_id = "5ccbd2ab14501cd236498638428d638d"
+
+[pages]
+project_name = "starslab-site"
+deployment_trigger = { type = "github" }
+build_command = "npm run build"
+build_output_dir = "dist"
+
+[vars]
+ENV = "production"

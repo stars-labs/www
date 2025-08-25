@@ -1,0 +1,24 @@
+name = "starslab-app"
+main = "src/site-worker.ts"
+compatibility_date = "2024-01-01"
+account_id = "5ccbd2ab14501cd236498638428d638d"
+workers_dev = true
+
+# Serve static files from dist directory
+[site]
+bucket = "../dist"
+
+[env.production]
+name = "starslab-app-production"
+workers_dev = false
+route = "starslab.io/*"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "starslab-db"
+database_id = "774b90d0-2ce4-4d11-95b1-6b9c29028ad0"
+migrations_dir = "drizzle"
+
+[vars]
+ENVIRONMENT = "production"
+CORS_ORIGIN = "*"
