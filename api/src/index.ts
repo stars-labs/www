@@ -7,8 +7,11 @@ import * as schema from './db/schema';
 
 import blockchainRoutes from './routes/blockchain';
 import transactionRoutes from './routes/transactions';
-import analyticsRoutes from './routes/analytics';
-import nodesRoutes from './routes/nodes';
+// import analyticsRoutes from './routes/analytics';
+// import nodesRoutes from './routes/nodes';
+import miningRoutes from './routes/mining';
+import rpcRoutes from './routes/rpc';
+import { BlockchainBot } from './services/bot';
 
 export type Env = {
   DB: D1Database;
@@ -54,8 +57,10 @@ app.get('/', (c) => {
     endpoints: {
       blockchain: '/api/blockchain',
       transactions: '/api/transactions',
-      analytics: '/api/analytics',
-      nodes: '/api/nodes',
+      // analytics: '/api/analytics',
+      // nodes: '/api/nodes',
+      mining: '/api/mining',
+      rpc: '/rpc',
       health: '/health'
     },
     documentation: 'https://starslab.io/api/docs'
@@ -65,8 +70,30 @@ app.get('/', (c) => {
 // Mount routes
 app.route('/api/blockchain', blockchainRoutes);
 app.route('/api/transactions', transactionRoutes);
-app.route('/api/analytics', analyticsRoutes);
-app.route('/api/nodes', nodesRoutes);
+// app.route('/api/analytics', analyticsRoutes);
+// app.route('/api/nodes', nodesRoutes);
+app.route('/api/mining', miningRoutes);
+app.route('/rpc', rpcRoutes);
+
+// Initialize bot on first request (Cloudflare Workers limitation)
+let botInitialized = false;
+app.use('/api/*', async (c, next) => {
+  if (!botInitialized) {
+    botInitialized = true;
+    const db = c.get('db');
+    const bot = new BlockchainBot(db, c.env.ENVIRONMENT);
+    
+    // Initialize bot and start transaction loop
+    bot.initialize().then(() => {
+      console.log('Bot initialized, starting transaction loop');
+      bot.startTransactionLoop();
+    }).catch(error => {
+      console.error('Failed to initialize bot:', error);
+    });
+  }
+  
+  await next();
+});
 
 // 404 handler
 app.notFound((c) => {

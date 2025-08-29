@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export type Route = 'home' | 'explorer';
+export type Route = 'home' | 'explorer' | 'mining' | 'whitepaper' | 'docs';
 
 export const currentRoute = writable<Route>('home');
 
@@ -22,5 +22,11 @@ if (typeof window !== 'undefined') {
   const path = window.location.pathname;
   if (path === '/explorer') {
     currentRoute.set('explorer');
+  } else if (path === '/mining') {
+    currentRoute.set('mining');
+  } else if (path === '/whitepaper') {
+    currentRoute.set('whitepaper');
+  } else if (path === '/docs') {
+    currentRoute.set('docs');
   }
 }

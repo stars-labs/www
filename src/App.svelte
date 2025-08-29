@@ -10,6 +10,9 @@
   import BlockchainViz from "./components/BlockchainViz.svelte";
   import BlockchainStats from "./components/BlockchainStats.svelte";
   import BlockchainExplorer from "./components/BlockchainExplorer.svelte";
+  import Mining from "./components/Mining.svelte";
+  import Whitepaper from "./components/Whitepaper.svelte";
+  import Documentation from "./components/Documentation.svelte";
   import { currentRoute, navigateTo } from "./lib/router";
   import faviconUrl from "/favicon.png";
 
@@ -77,6 +80,30 @@
           Explorer
         </button>
       </li>
+      <li>
+        <button
+          on:click={() => handleNavigate('mining')}
+          class="text-white/70 hover:text-brand-accent transition {$currentRoute === 'mining' ? 'text-brand-accent' : ''}"
+        >
+          Mining
+        </button>
+      </li>
+      <li>
+        <button
+          on:click={() => handleNavigate('whitepaper')}
+          class="text-white/70 hover:text-brand-accent transition {$currentRoute === 'whitepaper' ? 'text-brand-accent' : ''}"
+        >
+          Whitepaper
+        </button>
+      </li>
+      <li>
+        <button
+          on:click={() => handleNavigate('docs')}
+          class="text-white/70 hover:text-brand-accent transition {$currentRoute === 'docs' ? 'text-brand-accent' : ''}"
+        >
+          Docs
+        </button>
+      </li>
     </ul>
 
     <!-- Desktop CTA -->
@@ -138,6 +165,24 @@
         >
           Explorer
         </button>
+        <button
+          on:click={() => handleNavigate('mining')}
+          class="block w-full text-left text-white/70 hover:text-brand-accent transition py-2 {$currentRoute === 'mining' ? 'text-brand-accent' : ''}"
+        >
+          Mining
+        </button>
+        <button
+          on:click={() => handleNavigate('whitepaper')}
+          class="block w-full text-left text-white/70 hover:text-brand-accent transition py-2 {$currentRoute === 'whitepaper' ? 'text-brand-accent' : ''}"
+        >
+          Whitepaper
+        </button>
+        <button
+          on:click={() => handleNavigate('docs')}
+          class="block w-full text-left text-white/70 hover:text-brand-accent transition py-2 {$currentRoute === 'docs' ? 'text-brand-accent' : ''}"
+        >
+          Docs
+        </button>
         <div class="pt-3 border-t border-white/10">
           {#if $currentRoute === 'explorer'}
             <button
@@ -170,4 +215,14 @@
   <Footer />
 {:else if $currentRoute === 'explorer'}
   <BlockchainExplorer />
+{:else if $currentRoute === 'mining'}
+  <div class="min-h-screen pt-20 px-6 md:px-10">
+    <div class="max-w-4xl mx-auto">
+      <Mining />
+    </div>
+  </div>
+{:else if $currentRoute === 'whitepaper'}
+  <Whitepaper />
+{:else if $currentRoute === 'docs'}
+  <Documentation />
 {/if}

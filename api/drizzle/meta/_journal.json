@@ -8,6 +8,13 @@
       "when": 1756120250569,
       "tag": "0000_supreme_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1756150000000,
+      "tag": "0001_stars_cryptocurrency",
+      "breakpoints": true
     }
   ]
 }

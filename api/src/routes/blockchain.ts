@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { eq, desc, and, sql } from 'drizzle-orm';
-import { blocks, chainForks, type NewBlock, type NewChainFork } from '../db/schema';
+import { blocks, type NewBlock } from '../db/schema';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 
 const app = new Hono<{
@@ -23,12 +23,7 @@ const createBlockSchema = z.object({
   nonce: z.number().int().optional()
 });
 
-const createForkSchema = z.object({
-  forkId: z.string().min(1),
-  parentChainId: z.string().min(1),
-  forkHeight: z.number().int().min(0),
-  isMainChain: z.boolean().optional()
-});
+// Fork schema removed - not needed for STARS implementation
 
 // Get latest blocks
 app.get('/blocks', async (c) => {
@@ -97,14 +92,15 @@ app.post('/blocks', zValidator('json', createBlockSchema), async (c) => {
       .returning();
 
     // Update chain fork stats if exists
-    if (data.chainId) {
-      await db
-        .update(chainForks)
-        .set({ 
-          totalBlocks: sql`${chainForks.totalBlocks} + 1` 
-        })
-        .where(eq(chainForks.forkId, data.chainId));
-    }
+    // Commented out - chainForks table removed for STARS implementation
+    // if (data.chainId) {
+    //   await db
+    //     .update(chainForks)
+    //     .set({ 
+    //       totalBlocks: sql`${chainForks.totalBlocks} + 1` 
+    //     })
+    //     .where(eq(chainForks.forkId, data.chainId));
+    // }
 
     return c.json(created, 201);
   } catch (error) {
@@ -148,74 +144,19 @@ app.get('/stats', async (c) => {
   }
 });
 
-// Get chain forks
-app.get('/forks', async (c) => {
-  const db = c.get('db');
+// Get chain forks - commented out for STARS implementation
+// app.get('/forks', async (c) => {
+//   return c.json([]);
+// });
 
-  try {
-    const forks = await db
-      .select()
-      .from(chainForks)
-      .orderBy(desc(chainForks.createdAt));
+// Create chain fork - commented out for STARS implementation
+// app.post('/forks', zValidator('json', createForkSchema), async (c) => {
+//   return c.json({ error: 'Chain forks not supported in STARS' }, 501);
+// });
 
-    return c.json(forks);
-  } catch (error) {
-    return c.json({ error: 'Failed to fetch forks' }, 500);
-  }
-});
-
-// Create chain fork
-app.post('/forks', zValidator('json', createForkSchema), async (c) => {
-  const db = c.get('db');
-  const data = c.req.valid('json');
-
-  try {
-    const newFork: NewChainFork = {
-      ...data,
-      totalBlocks: 0
-    };
-
-    const [created] = await db
-      .insert(chainForks)
-      .values(newFork)
-      .returning();
-
-    return c.json(created, 201);
-  } catch (error) {
-    console.error('Error creating fork:', error);
-    return c.json({ error: 'Failed to create fork' }, 500);
-  }
-});
-
-// Resolve chain fork (mark main chain)
-app.put('/forks/:forkId/resolve', async (c) => {
-  const db = c.get('db');
-  const forkId = c.req.param('forkId');
-
-  try {
-    // Set all forks to not main
-    await db
-      .update(chainForks)
-      .set({ isMainChain: false });
-
-    // Set specified fork as main
-    const [resolved] = await db
-      .update(chainForks)
-      .set({ 
-        isMainChain: true,
-        resolvedAt: new Date()
-      })
-      .where(eq(chainForks.forkId, forkId))
-      .returning();
-
-    if (!resolved) {
-      return c.json({ error: 'Fork not found' }, 404);
-    }
-
-    return c.json(resolved);
-  } catch (error) {
-    return c.json({ error: 'Failed to resolve fork' }, 500);
-  }
-});
+// Resolve chain fork - commented out for STARS implementation
+// app.put('/forks/:forkId/resolve', async (c) => {
+//   return c.json({ error: 'Chain forks not supported in STARS' }, 501);
+// });
 
 export default app;

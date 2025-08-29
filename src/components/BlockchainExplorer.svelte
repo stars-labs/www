@@ -2,6 +2,20 @@
   import { onMount, onDestroy } from 'svelte';
   import { api } from '../services/api';
   import type { Block, Transaction, ChainFork } from '../services/api';
+  
+  // Format STARS amount
+  function formatStars(starshars: string | number): string {
+    const amount = typeof starshars === 'string' ? BigInt(starshars) : BigInt(starshars);
+    const stars = amount / BigInt(10 ** 10);
+    const remainder = amount % BigInt(10 ** 10);
+    
+    if (remainder === 0n) {
+      return `${stars} STARS`;
+    }
+    
+    const decimal = Number(remainder) / (10 ** 10);
+    return `${stars}.${decimal.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')} STARS`;
+  }
 
   let activeTab: 'blocks' | 'transactions' | 'forks' = 'blocks';
   let searchQuery = '';
@@ -238,9 +252,9 @@
               <tr>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Height</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Hash</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Chain</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Txs</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Miner</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Reward</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Time</th>
               </tr>
             </thead>
@@ -249,9 +263,9 @@
                 <tr class="bg-cyan-500/10 border-b border-cyan-500/30">
                   <td class="px-4 py-3 font-mono text-cyan-400">#{selectedBlock.height}</td>
                   <td class="px-4 py-3 font-mono text-cyan-400">{formatHash(selectedBlock.hash)}</td>
-                  <td class="px-4 py-3 text-sm">{selectedBlock.chainId}</td>
                   <td class="px-4 py-3">{selectedBlock.transactionCount || 0}</td>
-                  <td class="px-4 py-3 font-mono text-xs">{formatHash(selectedBlock.minerAddress || '')}</td>
+                  <td class="px-4 py-3 font-mono text-xs">{formatHash(selectedBlock.minerAddress || selectedBlock.miner || '')}</td>
+                  <td class="px-4 py-3 text-green-400">{formatStars(selectedBlock.reward || '10000000000')}</td>
                   <td class="px-4 py-3 text-sm text-gray-400">{formatTime(selectedBlock.timestamp)}</td>
                 </tr>
               {/if}
@@ -260,9 +274,9 @@
                     on:click={() => selectedBlock = block}>
                   <td class="px-4 py-3 font-mono text-cyan-400">#{block.height}</td>
                   <td class="px-4 py-3 font-mono text-cyan-400">{formatHash(block.hash)}</td>
-                  <td class="px-4 py-3 text-sm">{block.chainId}</td>
                   <td class="px-4 py-3">{block.transactionCount || 0}</td>
-                  <td class="px-4 py-3 font-mono text-xs">{formatHash(block.minerAddress || '')}</td>
+                  <td class="px-4 py-3 font-mono text-xs">{formatHash(block.minerAddress || block.miner || '')}</td>
+                  <td class="px-4 py-3 text-green-400">{formatStars(block.reward || '10000000000')}</td>
                   <td class="px-4 py-3 text-sm text-gray-400" title={block.timestamp ? new Date(block.timestamp).toLocaleString() : 'No timestamp'}>{formatTime(block.timestamp)}</td>
                 </tr>
               {/each}
@@ -297,7 +311,7 @@
                   <td class="px-4 py-3 font-mono text-cyan-400">{formatHash(selectedTx.hash)}</td>
                   <td class="px-4 py-3 font-mono text-xs">{formatHash(selectedTx.fromAddress)}</td>
                   <td class="px-4 py-3 font-mono text-xs">{formatHash(selectedTx.toAddress)}</td>
-                  <td class="px-4 py-3">{selectedTx.value.toFixed(2)}</td>
+                  <td class="px-4 py-3">{formatStars(selectedTx.value)}</td>
                   <td class="px-4 py-3">
                     <span class="{getStatusColor(selectedTx.status)}">{selectedTx.status}</span>
                   </td>
@@ -310,7 +324,7 @@
                   <td class="px-4 py-3 font-mono text-cyan-400">{formatHash(tx.hash)}</td>
                   <td class="px-4 py-3 font-mono text-xs">{formatHash(tx.fromAddress)}</td>
                   <td class="px-4 py-3 font-mono text-xs">{formatHash(tx.toAddress)}</td>
-                  <td class="px-4 py-3">{tx.value.toFixed(2)}</td>
+                  <td class="px-4 py-3">{formatStars(tx.value)}</td>
                   <td class="px-4 py-3">
                     <span class="{getStatusColor(tx.status)}">{tx.status}</span>
                   </td>
