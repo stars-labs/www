@@ -25,7 +25,7 @@ import {
   hashBlock,
   adjustDifficulty
 } from '../crypto/mining';
-import { createCoinbaseTransaction } from '../crypto/transaction';
+import { createCoinbaseTransaction, hashTransaction } from '../crypto/transaction';
 
 const app = new Hono<{
   Variables: {
@@ -74,8 +74,14 @@ app.post('/job', zValidator('json', getMiningJobSchema), async (c) => {
       .orderBy(desc(mempool.priority))
       .limit(100);
     
-    // Parse transactions from mempool
-    const txList = pendingTxs.map(entry => JSON.parse(entry.rawTx));
+    // Parse transactions from mempool and ensure they have hashes
+    const txList = pendingTxs.map(entry => {
+      const tx = JSON.parse(entry.rawTx);
+      return {
+        ...tx,
+        hash: entry.txHash
+      };
+    });
     
     // Create coinbase transaction
     const coinbaseTx = createCoinbaseTransaction(
@@ -85,7 +91,11 @@ app.post('/job', zValidator('json', getMiningJobSchema), async (c) => {
     );
     
     // All transaction hashes (coinbase + regular)
-    const txHashes = [coinbaseTx.hash, ...txList.map((tx: any) => tx.hash)];
+    // Filter out any undefined or invalid hashes
+    const txHashes = [
+      coinbaseTx.hash,
+      ...txList.map(tx => tx.hash).filter(hash => hash && hash.startsWith('0x'))
+    ];
     
     // Create block template
     const blockTemplate = {
@@ -102,8 +112,15 @@ app.post('/job', zValidator('json', getMiningJobSchema), async (c) => {
     const jobId = generateJobId();
     const target = calculateTarget(state.currentDifficulty);
     
-    // Store mining job (expires in 30 seconds)
-    const expiresAt = new Date(Date.now() + 30000);
+    // Store mining job (expires based on difficulty)
+    // Higher difficulty needs significantly more time to find solutions
+    let jobTimeout = 60000; // Default 1 minute
+    if (state.currentDifficulty >= 5) {
+      jobTimeout = 600000; // 10 minutes for difficulty 5+
+    } else if (state.currentDifficulty >= 4) {
+      jobTimeout = 300000; // 5 minutes for difficulty 4
+    }
+    const expiresAt = new Date(Date.now() + jobTimeout);
     
     await db.insert(miningJobs).values({
       jobId,
@@ -132,7 +149,11 @@ app.post('/job', zValidator('json', getMiningJobSchema), async (c) => {
     
   } catch (error) {
     console.error('Error creating mining job:', error);
-    return c.json({ error: 'Failed to create mining job' }, 500);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return c.json({ 
+      error: 'Failed to create mining job',
+      details: errorMessage 
+    }, 500);
   }
 });
 
@@ -192,19 +213,39 @@ app.post('/submit', zValidator('json', submitSolutionSchema), async (c) => {
     
     // Start transaction to add block
     try {
-      // Mark job as completed
+      // First check if this job ID has already been submitted
+      const [existingJob] = await db
+        .select({ completed: miningJobs.completed })
+        .from(miningJobs)
+        .where(eq(miningJobs.jobId, jobId))
+        .limit(1);
+
+      if (existingJob?.completed) {
+        return c.json({
+          accepted: false,
+          reason: 'Job already completed'
+        }, 400);
+      }
+
+      // Mark job as completed before processing
       await db
         .update(miningJobs)
         .set({ completed: true })
         .where(eq(miningJobs.jobId, jobId));
       
-      // Calculate total gas used
+      // Calculate total gas used safely
       let totalGasUsed = 0n;
-      for (const tx of template.transactions.slice(1)) { // Skip coinbase
-        totalGasUsed += BigInt(tx.gasUsed || 21000);
+      try {
+        for (const tx of template.transactions.slice(1)) { // Skip coinbase
+          const gasUsed = BigInt(tx.gasUsed || 21000);
+          totalGasUsed += gasUsed;
+        }
+      } catch (gasError) {
+        console.warn('Error calculating gas used, using default:', gasError);
+        totalGasUsed = BigInt(template.transactions.length * 21000);
       }
       
-      // Create new block
+      // Create new block with validated data
       const newBlock: NewBlock = {
         height: template.height,
         hash,
@@ -212,96 +253,157 @@ app.post('/submit', zValidator('json', submitSolutionSchema), async (c) => {
         merkleRoot: template.merkleRoot,
         timestamp: template.timestamp,
         difficulty: template.difficulty,
-        nonce,
+        nonce: String(nonce), // Ensure nonce is string
         minerAddress: template.minerAddress,
         reward: MINING_REWARD,
         txCount: template.transactions.length,
         gasUsed: totalGasUsed.toString()
       };
       
-      // Insert block
-      await db.insert(blocks).values(newBlock);
+      console.log(`Attempting to insert block at height ${template.height} with hash ${hash}`);
       
-      // Process transactions
+      // Insert block with proper error handling
+      let blockInserted = false;
+      try {
+        await db.insert(blocks).values(newBlock);
+        blockInserted = true;
+        console.log(`Successfully inserted block at height ${template.height}`);
+      } catch (blockInsertError: any) {
+        console.error('Block insert error:', blockInsertError);
+        
+        // Handle specific SQLite constraint errors
+        if (blockInsertError.message?.includes('UNIQUE constraint failed: blocks.height') ||
+            blockInsertError.message?.includes('constraint failed')) {
+          return c.json({
+            accepted: false,
+            reason: 'Block height already mined by another miner'
+          }, 409);
+        }
+        
+        // Handle other constraint errors
+        if (blockInsertError.message?.includes('constraint') ||
+            blockInsertError.message?.includes('FOREIGN KEY')) {
+          return c.json({
+            accepted: false,
+            reason: 'Database constraint violation',
+            details: blockInsertError.message
+          }, 400);
+        }
+        
+        throw blockInsertError; // Re-throw other errors
+      }
+      
+      // Process transactions with error handling
       for (const tx of template.transactions) {
-        // Skip coinbase (already has special handling)
-        if (tx.from === '0x0000000000000000000000000000000000000000') {
-          await db.insert(transactions).values({
-            hash: tx.hash,
-            blockHeight: template.height,
-            fromAddress: tx.from,
-            toAddress: tx.to,
-            value: tx.value,
-            gasLimit: 0,
-            gasPrice: '0',
-            gasUsed: 0,
-            nonce: tx.nonce,
-            signature: tx.signature || null,
-            status: 'confirmed'
-          });
-        } else {
-          // Regular transaction
-          await db.insert(transactions).values({
-            hash: tx.hash,
-            blockHeight: template.height,
-            fromAddress: tx.from,
-            toAddress: tx.to,
-            value: tx.value,
-            gasLimit: tx.gasLimit,
-            gasPrice: tx.gasPrice,
-            gasUsed: tx.gasUsed || 21000,
-            nonce: tx.nonce,
-            signature: tx.signature,
-            status: 'confirmed'
-          });
-          
-          // Update sender balance and nonce
-          const [senderWallet] = await db
-            .select()
-            .from(wallets)
-            .where(eq(wallets.address, tx.from))
-            .limit(1);
-          
-          if (senderWallet) {
-            const cost = BigInt(tx.value) + BigInt(tx.gasUsed || 21000) * BigInt(tx.gasPrice);
-            const newBalance = BigInt(senderWallet.balance) - cost;
-            
-            await db
-              .update(wallets)
-              .set({ 
-                balance: newBalance.toString(),
-                nonce: senderWallet.nonce + 1
-              })
-              .where(eq(wallets.address, tx.from));
-          }
-          
-          // Update recipient balance
-          const [recipientWallet] = await db
-            .select()
-            .from(wallets)
-            .where(eq(wallets.address, tx.to))
-            .limit(1);
-          
-          if (recipientWallet) {
-            const newBalance = BigInt(recipientWallet.balance) + BigInt(tx.value);
-            await db
-              .update(wallets)
-              .set({ balance: newBalance.toString() })
-              .where(eq(wallets.address, tx.to));
+        try {
+          // Skip coinbase (already has special handling)
+          if (tx.from === '0x0000000000000000000000000000000000000000') {
+            // Check if transaction already exists
+            const [existingTx] = await db
+              .select({ hash: transactions.hash })
+              .from(transactions)
+              .where(eq(transactions.hash, tx.hash))
+              .limit(1);
+
+            if (!existingTx) {
+              await db.insert(transactions).values({
+                hash: tx.hash,
+                blockHeight: template.height,
+                fromAddress: tx.from,
+                toAddress: tx.to,
+                value: tx.value,
+                gasLimit: 0,
+                gasPrice: '0',
+                gasUsed: 0,
+                nonce: tx.nonce,
+                signature: tx.signature || null,
+                status: 'confirmed'
+              });
+            }
           } else {
-            // Create new wallet for recipient
-            await db.insert(wallets).values({
-              address: tx.to,
-              balance: tx.value,
-              nonce: 0
-            });
-          }
+            // Regular transaction - check for duplicates first
+            const [existingRegularTx] = await db
+              .select({ hash: transactions.hash })
+              .from(transactions)
+              .where(eq(transactions.hash, tx.hash))
+              .limit(1);
+
+            if (!existingRegularTx) {
+              await db.insert(transactions).values({
+                hash: tx.hash,
+                blockHeight: template.height,
+                fromAddress: tx.from,
+                toAddress: tx.to,
+                value: tx.value,
+                gasLimit: tx.gasLimit,
+                gasPrice: tx.gasPrice,
+                gasUsed: tx.gasUsed || 21000,
+                nonce: tx.nonce,
+                signature: tx.signature,
+                status: 'confirmed'
+              });
+
+              // Only update balances for new transactions
+              // Update sender balance and nonce
+              const [senderWallet] = await db
+                .select()
+                .from(wallets)
+                .where(eq(wallets.address, tx.from))
+                .limit(1);
+              
+              if (senderWallet) {
+                const cost = BigInt(tx.value) + BigInt(tx.gasUsed || 21000) * BigInt(tx.gasPrice);
+                const newBalance = BigInt(senderWallet.balance) - cost;
+                
+                await db
+                  .update(wallets)
+                  .set({ 
+                    balance: newBalance.toString(),
+                    nonce: senderWallet.nonce + 1
+                  })
+                  .where(eq(wallets.address, tx.from));
+              }
+              
+              // Update recipient balance
+              const [recipientWallet] = await db
+                .select()
+                .from(wallets)
+                .where(eq(wallets.address, tx.to))
+                .limit(1);
+              
+              if (recipientWallet) {
+                const newBalance = BigInt(recipientWallet.balance) + BigInt(tx.value);
+                await db
+                  .update(wallets)
+                  .set({ balance: newBalance.toString() })
+                  .where(eq(wallets.address, tx.to));
+              } else {
+                // Create new wallet for recipient
+                await db.insert(wallets).values({
+                  address: tx.to,
+                  balance: tx.value,
+                  nonce: 0
+                });
+              }
+            }
         }
         
         // Remove from mempool
         await db
           .delete(mempool)
           .where(eq(mempool.txHash, tx.hash));
+
+        } catch (txError: any) {
+          console.error(`Transaction ${tx.hash} processing failed:`, txError);
+          // Handle constraint violations gracefully
+          if (txError.message?.includes('UNIQUE constraint failed') ||
+              txError.message?.includes('constraint')) {
+            console.log(`Transaction ${tx.hash} already exists, skipping...`);
+          } else {
+            // Log other errors but continue processing
+            console.error(`Unexpected error processing tx ${tx.hash}:`, txError);
+          }
+        }
       }
       
       // Credit miner with reward
@@ -360,20 +462,27 @@ app.post('/submit', zValidator('json', submitSolutionSchema), async (c) => {
         }
       }
       
-      // Update total supply
+      // Update total supply and chain state
       const newSupply = BigInt(currentState?.totalSupply || '0') + BigInt(MINING_REWARD);
       
-      await db
-        .update(chainState)
-        .set({
-          latestHeight: template.height,
-          latestHash: hash,
-          totalSupply: newSupply.toString(),
-          currentDifficulty: newDifficulty,
-          nextDifficultyAdjust: nextAdjust,
-          updatedAt: new Date()
-        })
-        .where(eq(chainState.id, 1));
+      console.log(`Updating chainState: height ${template.height}, hash ${hash}`);
+      try {
+        await db
+          .update(chainState)
+          .set({
+            latestHeight: template.height,
+            latestHash: hash,
+            totalSupply: newSupply.toString(),
+            currentDifficulty: newDifficulty,
+            nextDifficultyAdjust: nextAdjust,
+            updatedAt: new Date()
+          })
+          .where(eq(chainState.id, 1));
+        console.log(`ChainState updated successfully to height ${template.height}`);
+      } catch (chainUpdateError) {
+        console.error('Error updating chainState:', chainUpdateError);
+        throw chainUpdateError;
+      }
       
       return c.json({
         accepted: true,
@@ -388,15 +497,21 @@ app.post('/submit', zValidator('json', submitSolutionSchema), async (c) => {
       
     } catch (error) {
       console.error('Error processing block:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return c.json({ 
         accepted: false, 
-        reason: 'Failed to process block' 
+        reason: 'Failed to process block',
+        details: errorMessage
       }, 500);
     }
     
   } catch (error) {
     console.error('Error submitting solution:', error);
-    return c.json({ error: 'Failed to submit solution' }, 500);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return c.json({ 
+      error: 'Failed to submit solution',
+      details: errorMessage 
+    }, 500);
   }
 });
 

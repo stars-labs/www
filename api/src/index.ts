@@ -11,6 +11,9 @@ import transactionRoutes from './routes/transactions';
 // import nodesRoutes from './routes/nodes';
 import miningRoutes from './routes/mining';
 import rpcRoutes from './routes/rpc';
+import initRoutes from './routes/init';
+import botRoutes from './routes/bot';
+import walletRoutes from './routes/wallet';
 import { BlockchainBot } from './services/bot';
 
 export type Env = {
@@ -60,6 +63,9 @@ app.get('/', (c) => {
       // analytics: '/api/analytics',
       // nodes: '/api/nodes',
       mining: '/api/mining',
+      init: '/api/init',
+      bot: '/api/bot',
+      wallet: '/api/wallet',
       rpc: '/rpc',
       health: '/health'
     },
@@ -73,6 +79,9 @@ app.route('/api/transactions', transactionRoutes);
 // app.route('/api/analytics', analyticsRoutes);
 // app.route('/api/nodes', nodesRoutes);
 app.route('/api/mining', miningRoutes);
+app.route('/api/init', initRoutes);
+app.route('/api/bot', botRoutes);
+app.route('/api/wallet', walletRoutes);
 app.route('/rpc', rpcRoutes);
 
 // Initialize bot on first request (Cloudflare Workers limitation)

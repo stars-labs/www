@@ -444,11 +444,10 @@
             hash: newBlock.hash,
             previousHash: newBlock.prevHash,
             height: newBlock.height,
-            chainId: `chain-${miningChain.id}`,
-            transactionCount: newBlock.transactions,
+            txCount: newBlock.transactions,
             minerAddress: `0x${this.generateHash().substring(0, 40)}`,
             difficulty: Math.floor(Math.random() * 100) + 1,
-            nonce: Math.floor(Math.random() * 1000000)
+            nonce: Math.floor(Math.random() * 1000000).toString()
           });
           
           // Update confirmed transactions

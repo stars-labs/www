@@ -207,7 +207,7 @@
                   
                   <div>
                     <label class="text-gray-400 text-sm">New RPC URL</label>
-                    <div class="font-mono text-cyan-400 mt-1 break-all">https://www.hecoinfo.com/api/rpc</div>
+                    <div class="font-mono text-cyan-400 mt-1 break-all">https://starslab-app.freeman-xiong.workers.dev/api/rpc</div>
                   </div>
                   
                   <div>
@@ -222,7 +222,7 @@
                   
                   <div>
                     <label class="text-gray-400 text-sm">Block Explorer URL</label>
-                    <div class="font-mono text-cyan-400 mt-1 break-all">https://www.hecoinfo.com/explorer</div>
+                    <div class="font-mono text-cyan-400 mt-1 break-all">https://starslab-app.freeman-xiong.workers.dev/explorer</div>
                   </div>
                 </div>
                 
@@ -254,7 +254,7 @@
               <div>
                 <h2 class="text-xl font-semibold mb-3 text-cyan-400">Base URL</h2>
                 <div class="bg-black/50 rounded-lg p-4 font-mono text-sm text-green-400">
-                  https://www.hecoinfo.com/api
+                  https://starslab-app.freeman-xiong.workers.dev/api
                 </div>
               </div>
 

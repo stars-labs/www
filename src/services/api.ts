@@ -15,6 +15,10 @@ export interface Transaction {
   status: 'pending' | 'confirmed' | 'failed';
   userCreated?: boolean;
   createdAt: Date;
+  // New timestamp fields from backend API
+  timestamp?: number; // JavaScript timestamp in milliseconds
+  jsTimestamp?: number; // JavaScript timestamp in milliseconds
+  formattedTime?: string; // Human-readable formatted time
 }
 
 export interface Block {

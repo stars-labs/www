@@ -29,7 +29,8 @@ export function hashTransaction(tx: RawTransaction): string {
     (tx.timestamp || Date.now()).toString()
   ].join(':');
   
-  const hash = sha256(data);
+  const dataBytes = new TextEncoder().encode(data);
+  const hash = sha256(dataBytes);
   return '0x' + bytesToHex(hash);
 }
 

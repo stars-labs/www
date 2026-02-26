@@ -1,4 +1,5 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
+import { account } from './metamask';
 
 // Mining state stores
 export const isMining = writable(false);
@@ -7,7 +8,7 @@ export const blocksFound = writable(0);
 export const totalHashes = writable(0);
 export const currentDifficulty = writable(4);
 export const minerAddress = writable('');
-export const miningReward = writable('10000000000'); // 1 STARS in starshars
+export const miningReward = writable('1000000000000000000'); // 1 STARS in starshars (18 decimals)
 export const earnings = writable('0');
 
 // Derived stores
@@ -18,15 +19,15 @@ export const hashRateFormatted = derived(hashRate, $rate => {
 });
 
 export const earningsFormatted = derived(earnings, $earnings => {
-  const stars = BigInt($earnings) / BigInt(10 ** 10);
-  const remainder = BigInt($earnings) % BigInt(10 ** 10);
+  const stars = BigInt($earnings) / BigInt(10 ** 18);
+  const remainder = BigInt($earnings) % BigInt(10 ** 18);
   
   if (remainder === 0n) {
     return `${stars} STARS`;
   }
   
   // Show up to 4 decimal places
-  const decimal = Number(remainder) / (10 ** 10);
+  const decimal = Number(remainder) / (10 ** 18);
   return `${stars}.${decimal.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')} STARS`;
 });
 
@@ -43,7 +44,22 @@ export class MiningManager {
   
   // Generate or get miner address
   async getMinerAddress(): Promise<string> {
+    // First, try to get the connected MetaMask address
+    const accountStore = get(account);
+    console.log('getMinerAddress - accountStore:', accountStore);
+    
+    if (accountStore) {
+      // Use the connected MetaMask address for mining
+      console.log('Using MetaMask address for mining:', accountStore);
+      minerAddress.set(accountStore);
+      // Clear old localStorage address when using MetaMask
+      localStorage.removeItem('minerAddress');
+      return accountStore;
+    }
+    
+    // Fallback: Check localStorage for existing address
     let address = localStorage.getItem('minerAddress');
+    console.log('getMinerAddress - localStorage address:', address);
     
     if (!address) {
       // Generate a random address for this browser
@@ -54,6 +70,7 @@ export class MiningManager {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
       
+      console.log('Generated new miner address:', address);
       localStorage.setItem('minerAddress', address);
     }
     
@@ -61,6 +78,11 @@ export class MiningManager {
     return address;
   }
   
+  // Force update miner address (call when wallet changes)
+  async updateMinerAddress(): Promise<string> {
+    return await this.getMinerAddress();
+  }
+
   // Start mining
   async startMining() {
     if (this.worker) {
@@ -68,6 +90,7 @@ export class MiningManager {
       return;
     }
     
+    // Always refresh the miner address when starting mining
     const address = await this.getMinerAddress();
     console.log('Starting mining with address:', address);
     
@@ -250,13 +273,13 @@ export class MiningManager {
 // Format STARS amount
 export function formatStars(starshars: string | bigint): string {
   const amount = typeof starshars === 'string' ? BigInt(starshars) : starshars;
-  const stars = amount / BigInt(10 ** 10);
-  const remainder = amount % BigInt(10 ** 10);
+  const stars = amount / BigInt(10 ** 18);
+  const remainder = amount % BigInt(10 ** 18);
   
   if (remainder === 0n) {
     return `${stars} STARS`;
   }
   
-  const decimal = Number(remainder) / (10 ** 10);
+  const decimal = Number(remainder) / (10 ** 18);
   return `${stars}.${decimal.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')} STARS`;
 }

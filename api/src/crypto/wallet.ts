@@ -72,7 +72,8 @@ export function recoverWallet(mnemonic: string) {
 // Simple encryption for storing private keys (using environment secret)
 export function encryptData(data: string, secret: string): string {
   // Simple XOR encryption (in production, use proper AES encryption)
-  const key = Buffer.from(sha256(secret));
+  const secretBytes = new TextEncoder().encode(secret);
+  const key = Buffer.from(sha256(secretBytes));
   const dataBuffer = Buffer.from(data, 'utf-8');
   const encrypted = Buffer.alloc(dataBuffer.length);
   
@@ -85,7 +86,8 @@ export function encryptData(data: string, secret: string): string {
 
 // Decrypt data
 export function decryptData(encryptedData: string, secret: string): string {
-  const key = Buffer.from(sha256(secret));
+  const secretBytes = new TextEncoder().encode(secret);
+  const key = Buffer.from(sha256(secretBytes));
   const encrypted = Buffer.from(encryptedData, 'base64');
   const decrypted = Buffer.alloc(encrypted.length);
   

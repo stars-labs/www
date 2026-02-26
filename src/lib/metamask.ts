@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 
 // MetaMask state stores
 export const isConnected = writable(false);
@@ -9,15 +9,15 @@ export const isMetaMaskInstalled = writable(false);
 
 // Network configuration
 const STARS_NETWORK = {
-  chainId: '0x539', // 1337 in hex
-  chainName: 'StarsLab Network',
+  chainId: '0x1e93', // 7827 in hex (STARS network)
+  chainName: 'STARS Blockchain',
   nativeCurrency: {
     name: 'STARS',
     symbol: 'STARS',
-    decimals: 10
+    decimals: 18 // MetaMask requires 18 for EVM compatibility
   },
-  rpcUrls: ['https://www.hecoinfo.com/api/rpc'],
-  blockExplorerUrls: ['https://www.hecoinfo.com/explorer']
+  rpcUrls: ['https://starslab-app.freeman-xiong.workers.dev/rpc'],
+  blockExplorerUrls: ['http://localhost:5173/explorer']
 };
 
 // Ethereum provider type
@@ -27,18 +27,20 @@ declare global {
   }
 }
 
-// Format balance for display
+// Format balance for display (now uses 18 decimals for MetaMask compatibility)
 export const balanceFormatted = derived(balance, $balance => {
   if ($balance === '0') return '0 STARS';
   
-  const stars = BigInt($balance) / BigInt(10 ** 10);
-  const remainder = BigInt($balance) % BigInt(10 ** 10);
+  // Balance is now in 18 decimals (MetaMask standard)
+  const stars = BigInt($balance) / BigInt(10 ** 18);
+  const remainder = BigInt($balance) % BigInt(10 ** 18);
   
   if (remainder === 0n) {
     return `${stars} STARS`;
   }
   
-  const decimal = Number(remainder) / (10 ** 10);
+  // Show up to 4 decimal places
+  const decimal = Number(remainder) / (10 ** 18);
   return `${stars}.${decimal.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')} STARS`;
 });
 
@@ -92,10 +94,10 @@ export class MetaMaskManager {
         isConnected.set(true);
         account.set(accounts[0]);
         
-        const chainId = await this.ethereum.request({ 
+        const chain = await this.ethereum.request({ 
           method: 'eth_chainId' 
         });
-        chainId.set(chainId);
+        chainId.set(chain);
         
         await this.updateBalance(accounts[0]);
       }
@@ -203,16 +205,40 @@ export class MetaMaskManager {
       return null;
     }
     
-    const currentAccount = account.get();
+    const currentAccount = get(account);
     if (!currentAccount) {
       alert('Please connect your wallet first');
       return null;
     }
     
     try {
-      // Convert STARS to starshars (hex)
-      const amountInStarshars = BigInt(amount) * BigInt(10 ** 10);
+      // Convert STARS to starshars (18 decimals, like ETH wei)
+      const amountInStarshars = BigInt(Math.floor(parseFloat(amount) * (10 ** 18)));
       const valueHex = '0x' + amountInStarshars.toString(16);
+      
+      console.log('Sending transaction:', {
+        from: currentAccount,
+        to: to,
+        value: valueHex,
+        gas: '0x5208',
+        gasPrice: '0x1'
+      });
+      
+      // First estimate gas to ensure transaction is valid
+      try {
+        const gasEstimate = await this.ethereum.request({
+          method: 'eth_estimateGas',
+          params: [{
+            from: currentAccount,
+            to: to,
+            value: valueHex
+          }]
+        });
+        console.log('Gas estimate:', gasEstimate);
+      } catch (gasError) {
+        console.error('Gas estimation failed:', gasError);
+        // Continue anyway as our blockchain has fixed gas
+      }
       
       const txHash = await this.ethereum.request({
         method: 'eth_sendTransaction',
@@ -222,17 +248,32 @@ export class MetaMaskManager {
           value: valueHex,
           gas: '0x5208', // 21000 in hex
           gasPrice: '0x1' // 1 starshars
+          // Note: chainId is not a valid parameter for eth_sendTransaction
         }]
       });
+      
+      console.log('Transaction sent successfully:', txHash);
+      
+      // Update balance after a delay
+      setTimeout(() => this.updateBalance(currentAccount), 3000);
       
       return txHash;
     } catch (error: any) {
       console.error('Transaction failed:', error);
       
+      // Check for specific error codes
       if (error.code === 4001) {
         alert('Transaction cancelled');
+      } else if (error.code === -32603) {
+        // Internal JSON-RPC error - likely a MetaMask issue
+        console.error('MetaMask internal error. Full error:', error);
+        
+        // Try alternative approach - use eth_sendRawTransaction
+        alert('Transaction failed due to MetaMask error. Please try again or check if MetaMask is properly connected to the STARS network.');
+      } else if (error.message?.includes('insufficient funds')) {
+        alert('Insufficient balance for transaction');
       } else {
-        alert('Transaction failed: ' + error.message);
+        alert('Transaction failed: ' + (error.message || 'Unknown error'));
       }
       
       return null;

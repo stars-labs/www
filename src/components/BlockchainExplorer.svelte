@@ -5,16 +5,39 @@
   
   // Format STARS amount
   function formatStars(starshars: string | number): string {
-    const amount = typeof starshars === 'string' ? BigInt(starshars) : BigInt(starshars);
-    const stars = amount / BigInt(10 ** 10);
-    const remainder = amount % BigInt(10 ** 10);
-    
-    if (remainder === 0n) {
-      return `${stars} STARS`;
+    try {
+      // Handle decimal numbers by converting to string first and removing decimals
+      let valueStr: string;
+      if (typeof starshars === 'number') {
+        // If it's a decimal number, multiply by 10^18 to get starshars as integer
+        if (!Number.isInteger(starshars)) {
+          const starsAmount = starshars; // This is already in STARS
+          return `${starsAmount.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')} STARS`;
+        }
+        valueStr = starshars.toString();
+      } else {
+        // Handle string that might contain decimals
+        if (starshars.includes('.')) {
+          const numValue = parseFloat(starshars);
+          return `${numValue.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')} STARS`;
+        }
+        valueStr = starshars;
+      }
+      
+      const amount = BigInt(valueStr);
+      const stars = amount / BigInt(10 ** 18);
+      const remainder = amount % BigInt(10 ** 18);
+      
+      if (remainder === 0n) {
+        return `${stars} STARS`;
+      }
+      
+      const decimal = Number(remainder) / (10 ** 18);
+      return `${stars}.${decimal.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')} STARS`;
+    } catch (error) {
+      console.error('Error formatting STARS:', error, starshars);
+      return '0 STARS';
     }
-    
-    const decimal = Number(remainder) / (10 ** 10);
-    return `${stars}.${decimal.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')} STARS`;
   }
 
   let activeTab: 'blocks' | 'transactions' | 'forks' = 'blocks';
@@ -33,7 +56,7 @@
     totalBlocks: 0,
     totalTransactions: 0,
     pendingTxs: 0,
-    chains: [] as Array<{ chainId: string; blockCount: number; maxHeight: number }>
+    latestHeight: 0
   };
 
   let refreshInterval: NodeJS.Timeout;
@@ -43,22 +66,22 @@
     error = '';
 
     try {
-      const [blockData, forkData, statsData, txStats] = await Promise.all([
+      const [blockData, statsData, txStats, txData] = await Promise.all([
         api.getBlocks(20, 0),
-        api.getChainForks(),
         api.getChainStats(),
-        api.getTransactionStats()
+        api.getTransactionStats(),
+        api.getTransactions(20, 0) // Load proper transactions with timestamp data
       ]);
 
       blocks = blockData.blocks;
-      // Use recent transactions from stats which includes pending ones
-      transactions = txStats.recentTransactions || [];
-      chainForks = forkData;
+      // Use proper transactions API which has enhanced timestamp data
+      transactions = txData.transactions || [];
+      chainForks = []; // No longer using forks
       stats = {
         totalBlocks: statsData.totalBlocks,
         totalTransactions: txStats.totalTransactions,
         pendingTxs: txStats.pendingCount,
-        chains: statsData.chains
+        latestHeight: statsData.latestHeight
       };
     } catch (err) {
       error = 'Failed to load blockchain data';
@@ -104,12 +127,9 @@
 
   async function loadMoreTransactions() {
     try {
-      // Load from mempool (pending transactions) since that's where they are
-      const mempool = await api.getMempool();
-      // Get unique transactions not already displayed
-      const existingHashes = new Set(transactions.map(tx => tx.hash));
-      const newTxs = mempool.mempool.filter(tx => !existingHashes.has(tx.hash));
-      transactions = [...transactions, ...newTxs.slice(0, 20)];
+      // Load more from transactions API with proper timestamp data
+      const moreTxs = await api.getTransactions(20, transactions.length);
+      transactions = [...transactions, ...moreTxs.transactions];
     } catch (err) {
       console.error('Failed to load more transactions', err);
     }
@@ -183,8 +203,8 @@
         <div class="text-2xl font-bold text-yellow-400">{stats.pendingTxs.toLocaleString()}</div>
       </div>
       <div class="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-4">
-        <div class="text-sm text-gray-400 mb-1">Active Chains</div>
-        <div class="text-2xl font-bold text-cyan-400">{stats.chains.length}</div>
+        <div class="text-sm text-gray-400 mb-1">Latest Height</div>
+        <div class="text-2xl font-bold text-cyan-400">{stats.latestHeight.toLocaleString()}</div>
       </div>
     </div>
 
@@ -265,7 +285,7 @@
                   <td class="px-4 py-3 font-mono text-cyan-400">{formatHash(selectedBlock.hash)}</td>
                   <td class="px-4 py-3">{selectedBlock.transactionCount || 0}</td>
                   <td class="px-4 py-3 font-mono text-xs">{formatHash(selectedBlock.minerAddress || selectedBlock.miner || '')}</td>
-                  <td class="px-4 py-3 text-green-400">{formatStars(selectedBlock.reward || '10000000000')}</td>
+                  <td class="px-4 py-3 text-green-400">{formatStars(selectedBlock.reward || '1000000000000000000')}</td>
                   <td class="px-4 py-3 text-sm text-gray-400">{formatTime(selectedBlock.timestamp)}</td>
                 </tr>
               {/if}
@@ -276,7 +296,7 @@
                   <td class="px-4 py-3 font-mono text-cyan-400">{formatHash(block.hash)}</td>
                   <td class="px-4 py-3">{block.transactionCount || 0}</td>
                   <td class="px-4 py-3 font-mono text-xs">{formatHash(block.minerAddress || block.miner || '')}</td>
-                  <td class="px-4 py-3 text-green-400">{formatStars(block.reward || '10000000000')}</td>
+                  <td class="px-4 py-3 text-green-400">{formatStars(block.reward || '1000000000000000000')}</td>
                   <td class="px-4 py-3 text-sm text-gray-400" title={block.timestamp ? new Date(block.timestamp).toLocaleString() : 'No timestamp'}>{formatTime(block.timestamp)}</td>
                 </tr>
               {/each}
@@ -315,7 +335,7 @@
                   <td class="px-4 py-3">
                     <span class="{getStatusColor(selectedTx.status)}">{selectedTx.status}</span>
                   </td>
-                  <td class="px-4 py-3 text-sm text-gray-400" title={selectedTx.createdAt ? new Date(selectedTx.createdAt).toLocaleString() : 'Pending transaction'}>{formatTime(selectedTx.createdAt)}</td>
+                  <td class="px-4 py-3 text-sm text-gray-400" title={selectedTx.formattedTime || selectedTx.createdAt ? new Date(selectedTx.createdAt).toLocaleString() : 'Pending transaction'}>{selectedTx.formattedTime || formatTime(selectedTx.createdAt)}</td>
                 </tr>
               {/if}
               {#each transactions as tx}
@@ -328,7 +348,7 @@
                   <td class="px-4 py-3">
                     <span class="{getStatusColor(tx.status)}">{tx.status}</span>
                   </td>
-                  <td class="px-4 py-3 text-sm text-gray-400" title={tx.createdAt ? new Date(tx.createdAt).toLocaleString() : 'Pending transaction'}>{formatTime(tx.createdAt)}</td>
+                  <td class="px-4 py-3 text-sm text-gray-400" title={tx.formattedTime || tx.createdAt ? new Date(tx.createdAt).toLocaleString() : 'Pending transaction'}>{tx.formattedTime || formatTime(tx.createdAt)}</td>
                 </tr>
               {/each}
             </tbody>

@@ -8,6 +8,8 @@
     isMetaMaskInstalled 
   } from '../lib/metamask';
   import { api } from '../services/api';
+  import DirectSend from './DirectSend.svelte';
+  import { simpleSend, signedSend } from '../lib/simple-send';
   
   let metamask: MetaMaskManager;
   let showSendModal = false;
@@ -41,12 +43,25 @@
   }
   
   async function handleSend() {
-    if (!metamask || !sendTo || !sendAmount) return;
+    if (!$account || !sendTo || !sendAmount) return;
     
     sending = true;
     
     try {
-      const txHash = await metamask.sendTransaction(sendTo, sendAmount);
+      // Try simple send first
+      let txHash = await simpleSend($account, sendTo, sendAmount);
+      
+      // If simple send fails, try signed send
+      if (!txHash) {
+        console.log('Simple send failed, trying signed send...');
+        txHash = await signedSend($account, sendTo, sendAmount);
+      }
+      
+      // If still no success, try original MetaMask method
+      if (!txHash && metamask) {
+        console.log('Signed send failed, trying MetaMask method...');
+        txHash = await metamask.sendTransaction(sendTo, sendAmount);
+      }
       
       if (txHash) {
         alert(`Transaction sent! Hash: ${txHash}`);
@@ -56,10 +71,18 @@
         
         // Refresh balance and history
         setTimeout(() => {
-          metamask.updateBalance($account!);
+          if (metamask && $account) {
+            metamask.updateBalance($account);
+          }
           loadTransactionHistory();
+          window.location.reload();
         }, 2000);
+      } else {
+        alert('Transaction failed. Please try the Direct Transfer option.');
       }
+    } catch (error) {
+      console.error('Send error:', error);
+      alert('Transaction failed. Please use the Direct Transfer option instead.');
     } finally {
       sending = false;
     }
@@ -140,13 +163,18 @@
       </div>
     </div>
     
+    <!-- Direct Send Component (Alternative) -->
+    <div class="mb-4">
+      <DirectSend />
+    </div>
+    
     <!-- Action Buttons -->
     <div class="grid grid-cols-2 gap-4 mb-6">
       <button
         on:click={() => showSendModal = true}
         class="px-4 py-3 bg-blue-500/20 text-blue-400 rounded-lg font-medium border border-blue-500/50 hover:bg-blue-500/30 transition"
       >
-        📤 Send STARS
+        📤 Send (MetaMask)
       </button>
       
       <button
@@ -179,7 +207,16 @@
                   {tx.from === $account ? `To: ${formatAddress(tx.to)}` : `From: ${formatAddress(tx.from)}`}
                 </div>
                 <div class="font-bold {tx.from === $account ? 'text-red-400' : 'text-green-400'}">
-                  {tx.from === $account ? '-' : '+'}{(BigInt(tx.value) / BigInt(10 ** 10)).toString()} STARS
+                  {tx.from === $account ? '-' : '+'}{(() => {
+                    try {
+                      const val = typeof tx.value === 'string' && tx.value.includes('.') 
+                        ? parseFloat(tx.value) 
+                        : BigInt(tx.value) / BigInt(10 ** 18);
+                      return typeof val === 'bigint' ? val.toString() : val.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+                    } catch {
+                      return '0';
+                    }
+                  })()} STARS
                 </div>
               </div>
             </div>
@@ -243,7 +280,7 @@
         </div>
         
         <div class="text-xs text-white/50">
-          Fee: 0.0000000001 STARS (1 starshars)
+          Fee: 0.000000000000000001 STARS (1 starshar)
         </div>
       </div>
       

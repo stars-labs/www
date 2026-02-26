@@ -4,3 +4,5 @@ dist
 *.log
 pnpm-lock.yaml
 yarn.lock
+.wrangler/
+api/.wrangler/

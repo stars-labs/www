@@ -2,6 +2,9 @@
   import { onMount, onDestroy } from 'svelte';
   import { api } from '../services/api';
   import Wallet from './Wallet.svelte';
+  import AddNetworkButton from './AddNetworkButton.svelte';
+  import BotActivity from './BotActivity.svelte';
+  import Faucet from './Faucet.svelte';
   import { 
     MiningManager,
     isMining,
@@ -13,15 +16,21 @@
     earningsFormatted,
     formatStars
   } from '../lib/mining';
+  import { account } from '../lib/metamask';
   
   let miningManager: MiningManager;
   let miningStats: any = null;
   let statsInterval: number;
+  let accountUnsubscribe: () => void;
   
   onMount(async () => {
     // Initialize mining manager
     miningManager = new MiningManager(api);
-    await miningManager.getMinerAddress();
+    
+    // Wait a bit to ensure MetaMask connection is established
+    setTimeout(async () => {
+      await miningManager.getMinerAddress();
+    }, 1000);
     
     // Request notification permission
     miningManager.requestNotificationPermission();
@@ -31,6 +40,14 @@
     
     // Update stats every 5 seconds
     statsInterval = setInterval(fetchStats, 5000);
+    
+    // Watch for account changes and update miner address
+    accountUnsubscribe = account.subscribe(async (newAccount) => {
+      if (miningManager && newAccount) {
+        console.log('Account changed, updating miner address:', newAccount);
+        await miningManager.updateMinerAddress();
+      }
+    });
   });
   
   onDestroy(() => {
@@ -40,6 +57,10 @@
     
     if (statsInterval) {
       clearInterval(statsInterval);
+    }
+    
+    if (accountUnsubscribe) {
+      accountUnsubscribe();
     }
   });
   
@@ -65,6 +86,22 @@
     return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
   }
 </script>
+
+<!-- Network Setup Banner -->
+<div class="mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-cyan-900/30 rounded-xl border border-purple-500/30">
+  <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+    <div>
+      <h3 class="text-lg font-semibold text-white mb-1">🌟 Connect to STARS Network</h3>
+      <p class="text-sm text-white/70">Add the STARS blockchain to MetaMask to start mining and earning rewards</p>
+    </div>
+    <AddNetworkButton />
+  </div>
+</div>
+
+<!-- Faucet Component -->
+<div class="mb-6">
+  <Faucet />
+</div>
 
 <!-- Wallet Component -->
 <div class="mb-6">
@@ -171,6 +208,11 @@
       </div>
     </div>
   {/if}
+</div>
+
+<!-- Bot Activity -->
+<div class="mt-8">
+  <BotActivity />
 </div>
 
 <style>

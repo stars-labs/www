@@ -113,8 +113,8 @@ export type BotConfig = typeof botConfig.$inferSelect;
 export type ChainState = typeof chainState.$inferSelect;
 
 // Helper constants
-export const STARS_DECIMALS = 10; // 1 STARS = 10^10 starshars
+export const STARS_DECIMALS = 18; // 1 STARS = 10^18 starshars (like ETH wei)
 export const STARS_TO_STARSHARS = BigInt(10 ** STARS_DECIMALS);
 export const MINING_REWARD = (1n * STARS_TO_STARSHARS).toString(); // 1 STARS
-export const MIN_TX_FEE = '1'; // 1 starshars
+export const MIN_TX_FEE = '1'; // 1 starshar
 export const GENESIS_SUPPLY = (1000000n * STARS_TO_STARSHARS).toString(); // 1M STARS for bot

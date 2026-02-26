@@ -21,23 +21,25 @@
     isLoading = true;
 
     try {
-      // Fetch multiple stats in parallel
-      const [chainStats, txStats, networkStats, miningStats, globalAnalytics] = await Promise.all([
-        api.getChainStats(),
-        api.getTransactionStats(),
-        api.getNetworkStats(),
-        api.getMiningStats().catch(() => null),
-        api.getGlobalAnalytics(1)
+      // Fetch only available stats
+      const [chainStats, txStats, miningStats] = await Promise.all([
+        api.getChainStats().catch(() => ({ totalBlocks: 0 })),
+        api.getTransactionStats().catch(() => ({ 
+          totalTransactions: 0, 
+          pendingCount: 0, 
+          confirmedCount: 0 
+        })),
+        api.getMiningStats().catch(() => null)
       ]);
 
       stats = {
-        totalBlocks: chainStats.totalBlocks,
-        totalTransactions: txStats.totalTransactions,
-        pendingTxs: txStats.pendingCount,
-        confirmedTxs: txStats.confirmedCount,
-        activeNodes: networkStats.network.activeNodes || 0,
+        totalBlocks: chainStats?.totalBlocks || 0,
+        totalTransactions: txStats?.totalTransactions || 0,
+        pendingTxs: txStats?.pendingCount || 0,
+        confirmedTxs: txStats?.confirmedCount || 0,
+        activeNodes: 1, // Fixed for now since we removed nodes table
         miningSpeed: miningStats?.speedMultiplier || 1,
-        userInteractions: globalAnalytics.interactions.totalInteractions || 0
+        userInteractions: 0 // Fixed for now since we removed interactions
       };
 
       apiConnected = true;

@@ -16,11 +16,10 @@ const createBlockSchema = z.object({
   hash: z.string().min(1),
   previousHash: z.string().min(1),
   height: z.number().int().min(0),
-  chainId: z.string().min(1),
-  transactionCount: z.number().int().min(0).optional(),
+  txCount: z.number().int().min(0).optional(),
   minerAddress: z.string().optional(),
   difficulty: z.number().optional(),
-  nonce: z.number().int().optional()
+  nonce: z.string().optional()
 });
 
 // Fork schema removed - not needed for STARS implementation
@@ -30,20 +29,26 @@ app.get('/blocks', async (c) => {
   const db = c.get('db');
   const limit = Number(c.req.query('limit')) || 10;
   const offset = Number(c.req.query('offset')) || 0;
-  const chainId = c.req.query('chainId');
 
   try {
-    const query = chainId 
-      ? db.select().from(blocks).where(eq(blocks.chainId, chainId))
-      : db.select().from(blocks);
-    
-    const result = await query
+    const result = await db
+      .select()
+      .from(blocks)
       .orderBy(desc(blocks.height))
       .limit(limit)
       .offset(offset);
 
+    // Convert Unix timestamps (seconds) to JavaScript timestamps (milliseconds) for frontend compatibility
+    const blocksWithTime = result.map(block => ({
+      ...block,
+      timestamp: block.timestamp * 1000, // Convert to JavaScript timestamp in milliseconds for frontend
+      unixTimestamp: block.timestamp, // Keep original Unix timestamp
+      jsTimestamp: block.timestamp * 1000, // JavaScript timestamp in milliseconds
+      formattedTime: new Date(block.timestamp * 1000).toLocaleString() // Human readable time
+    }));
+
     return c.json({
-      blocks: result,
+      blocks: blocksWithTime,
       count: result.length,
       limit,
       offset
@@ -69,7 +74,16 @@ app.get('/blocks/:hash', async (c) => {
       return c.json({ error: 'Block not found' }, 404);
     }
 
-    return c.json(block);
+    // Add JavaScript timestamp and formatted time  
+    const blockWithTime = {
+      ...block,
+      timestamp: block.timestamp * 1000, // Convert to JavaScript timestamp for frontend compatibility
+      unixTimestamp: block.timestamp, // Keep original Unix timestamp
+      jsTimestamp: block.timestamp * 1000, // JavaScript timestamp in milliseconds
+      formattedTime: new Date(block.timestamp * 1000).toLocaleString() // Human readable time
+    };
+
+    return c.json(blockWithTime);
   } catch (error) {
     return c.json({ error: 'Failed to fetch block' }, 500);
   }
@@ -81,9 +95,30 @@ app.post('/blocks', zValidator('json', createBlockSchema), async (c) => {
   const data = c.req.valid('json');
 
   try {
+    // Import MINING_REWARD from schema
+    const { MINING_REWARD } = await import('../db/schema');
+    
+    // Get the latest block height
+    const latestBlock = await db
+      .select({ height: blocks.height })
+      .from(blocks)
+      .orderBy(desc(blocks.height))
+      .limit(1);
+    
+    const nextHeight = latestBlock.length > 0 ? latestBlock[0].height + 1 : data.height;
+    
     const newBlock: NewBlock = {
-      ...data,
-      timestamp: new Date()
+      hash: data.hash,
+      previousHash: data.previousHash,
+      height: nextHeight, // Use the next height
+      timestamp: Date.now(),
+      difficulty: data.difficulty || 1,
+      nonce: data.nonce || '0',
+      minerAddress: data.minerAddress || '0x0000000000000000000000000000000000000000',
+      reward: MINING_REWARD, // Add the required reward field
+      merkleRoot: '', // Add merkleRoot
+      gasUsed: '0', // Add gasUsed
+      txCount: data.txCount || 0
     };
 
     const [created] = await db
@@ -118,14 +153,13 @@ app.get('/stats', async (c) => {
       .select({ count: sql<number>`count(*)` })
       .from(blocks);
 
-    const chains = await db
+    const latestBlock = await db
       .select({
-        chainId: blocks.chainId,
-        blockCount: sql<number>`count(*)`,
-        maxHeight: sql<number>`max(${blocks.height})`
+        maxHeight: sql<number>`max(${blocks.height})`,
+        minHeight: sql<number>`min(${blocks.height})`,
+        avgDifficulty: sql<number>`avg(${blocks.difficulty})`
       })
-      .from(blocks)
-      .groupBy(blocks.chainId);
+      .from(blocks);
 
     const recentBlocks = await db
       .select()
@@ -135,7 +169,8 @@ app.get('/stats', async (c) => {
 
     return c.json({
       totalBlocks: totalBlocks[0]?.count || 0,
-      chains,
+      latestHeight: latestBlock[0]?.maxHeight || 0,
+      averageDifficulty: latestBlock[0]?.avgDifficulty || 0,
       recentBlocks,
       timestamp: new Date().toISOString()
     });

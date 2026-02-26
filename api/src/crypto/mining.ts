@@ -41,7 +41,8 @@ export function createBlockHeader(template: {
 // Hash block with nonce
 export function hashBlock(header: string, nonce: string): string {
   const data = header + ':' + nonce;
-  const hash = sha256(data);
+  const dataBytes = new TextEncoder().encode(data);
+  const hash = sha256(dataBytes);
   return '0x' + bytesToHex(hash);
 }
 
@@ -77,7 +78,12 @@ export function calculateMerkleRoot(txHashes: string[]): string {
       const left = level[i];
       const right = level[i + 1] || left; // Duplicate last if odd number
       
-      const combined = hexToBytes(left + right);
+      const leftBytes = hexToBytes(left);
+      const rightBytes = hexToBytes(right);
+      const combined = new Uint8Array(leftBytes.length + rightBytes.length);
+      combined.set(leftBytes);
+      combined.set(rightBytes, leftBytes.length);
+      
       const hash = bytesToHex(sha256(combined));
       nextLevel.push(hash);
     }
