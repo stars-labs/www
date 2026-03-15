@@ -28,6 +28,60 @@ const updateTransactionSchema = z.object({
   status: z.enum(['pending', 'confirmed', 'failed']).optional()
 });
 
+// Get transaction statistics - MUST be before /:hash to avoid route conflict
+app.get('/stats/summary', async (c) => {
+  const db = c.get('db');
+
+  try {
+    const stats = await db
+      .select({
+        totalTransactions: sql<number>`count(*)`,
+        pendingCount: sql<number>`sum(case when status = 'pending' then 1 else 0 end)`,
+        confirmedCount: sql<number>`sum(case when status = 'confirmed' then 1 else 0 end)`,
+        failedCount: sql<number>`sum(case when status = 'failed' then 1 else 0 end)`,
+        userCreatedCount: sql<number>`sum(case when user_created = true then 1 else 0 end)`,
+        totalValue: sql<number>`sum(value)`,
+        totalFees: sql<number>`sum(fee)`
+      })
+      .from(transactions);
+
+    const recentTransactions = await db
+      .select()
+      .from(transactions)
+      .orderBy(desc(transactions.id))
+      .limit(10);
+
+    return c.json({
+      ...stats[0],
+      recentTransactions,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    return c.json({ error: 'Failed to fetch transaction stats' }, 500);
+  }
+});
+
+// Get mempool (pending transactions) - MUST be before /:hash to avoid route conflict
+app.get('/mempool/pending', async (c) => {
+  const db = c.get('db');
+
+  try {
+    const pendingTxs = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.status, 'pending'))
+      .orderBy(desc(transactions.id))
+      .limit(50);
+
+    return c.json({
+      mempool: pendingTxs,
+      count: pendingTxs.length
+    });
+  } catch (error) {
+    return c.json({ error: 'Failed to fetch mempool' }, 500);
+  }
+});
+
 // Get transactions
 app.get('/', async (c) => {
   const db = c.get('db');
@@ -39,7 +93,7 @@ app.get('/', async (c) => {
 
   try {
     let query = db.select().from(transactions);
-    
+
     const conditions = [];
     if (status) {
       conditions.push(eq(transactions.status, status as any));
@@ -47,7 +101,7 @@ app.get('/', async (c) => {
     if (userCreatedParam !== undefined) {
       conditions.push(eq(transactions.userCreated, userCreated));
     }
-    
+
     if (conditions.length > 0) {
       query = query.where(and(...conditions)) as any;
     }
@@ -134,60 +188,6 @@ app.patch('/:hash', zValidator('json', updateTransactionSchema), async (c) => {
     return c.json(updated);
   } catch (error) {
     return c.json({ error: 'Failed to update transaction' }, 500);
-  }
-});
-
-// Get transaction statistics
-app.get('/stats/summary', async (c) => {
-  const db = c.get('db');
-
-  try {
-    const stats = await db
-      .select({
-        totalTransactions: sql<number>`count(*)`,
-        pendingCount: sql<number>`sum(case when status = 'pending' then 1 else 0 end)`,
-        confirmedCount: sql<number>`sum(case when status = 'confirmed' then 1 else 0 end)`,
-        failedCount: sql<number>`sum(case when status = 'failed' then 1 else 0 end)`,
-        userCreatedCount: sql<number>`sum(case when user_created = true then 1 else 0 end)`,
-        totalValue: sql<number>`sum(value)`,
-        totalFees: sql<number>`sum(fee)`
-      })
-      .from(transactions);
-
-    const recentTransactions = await db
-      .select()
-      .from(transactions)
-      .orderBy(desc(transactions.id))
-      .limit(10);
-
-    return c.json({
-      ...stats[0],
-      recentTransactions,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    return c.json({ error: 'Failed to fetch transaction stats' }, 500);
-  }
-});
-
-// Get mempool (pending transactions)
-app.get('/mempool/pending', async (c) => {
-  const db = c.get('db');
-
-  try {
-    const pendingTxs = await db
-      .select()
-      .from(transactions)
-      .where(eq(transactions.status, 'pending'))
-      .orderBy(desc(transactions.id))
-      .limit(50);
-
-    return c.json({
-      mempool: pendingTxs,
-      count: pendingTxs.length
-    });
-  } catch (error) {
-    return c.json({ error: 'Failed to fetch mempool' }, 500);
   }
 });
 

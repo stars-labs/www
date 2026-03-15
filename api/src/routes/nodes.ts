@@ -24,6 +24,40 @@ const updateNodeSchema = z.object({
   consensusParticipation: z.number().int().optional()
 });
 
+// Get network statistics - MUST be before /:nodeId to avoid route conflict
+app.get('/stats/network', async (c) => {
+  const db = c.get('db');
+
+  try {
+    const stats = await db
+      .select({
+        totalNodes: sql<number>`count(*)`,
+        activeNodes: sql<number>`sum(case when is_active = true then 1 else 0 end)`,
+        validators: sql<number>`sum(case when type = 'validator' then 1 else 0 end)`,
+        miners: sql<number>`sum(case when type = 'miner' then 1 else 0 end)`,
+        peers: sql<number>`sum(case when type = 'peer' then 1 else 0 end)`,
+        smartContracts: sql<number>`sum(case when type = 'smart-contract' then 1 else 0 end)`,
+        totalConsensusParticipation: sql<number>`sum(consensus_participation)`
+      })
+      .from(nodes);
+
+    const topValidators = await db
+      .select()
+      .from(nodes)
+      .where(eq(nodes.type, 'validator'))
+      .orderBy(desc(nodes.consensusParticipation))
+      .limit(5);
+
+    return c.json({
+      network: stats[0] || {},
+      topValidators,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    return c.json({ error: 'Failed to fetch network stats' }, 500);
+  }
+});
+
 // Get all nodes
 app.get('/', async (c) => {
   const db = c.get('db');
@@ -32,7 +66,7 @@ app.get('/', async (c) => {
 
   try {
     let query = db.select().from(nodes);
-    
+
     if (type) {
       query = query.where(eq(nodes.type, type as any)) as any;
     }
@@ -151,40 +185,6 @@ app.post('/:nodeId/heartbeat', async (c) => {
     });
   } catch (error) {
     return c.json({ error: 'Failed to update heartbeat' }, 500);
-  }
-});
-
-// Get network statistics
-app.get('/stats/network', async (c) => {
-  const db = c.get('db');
-
-  try {
-    const stats = await db
-      .select({
-        totalNodes: sql<number>`count(*)`,
-        activeNodes: sql<number>`sum(case when is_active = true then 1 else 0 end)`,
-        validators: sql<number>`sum(case when type = 'validator' then 1 else 0 end)`,
-        miners: sql<number>`sum(case when type = 'miner' then 1 else 0 end)`,
-        peers: sql<number>`sum(case when type = 'peer' then 1 else 0 end)`,
-        smartContracts: sql<number>`sum(case when type = 'smart-contract' then 1 else 0 end)`,
-        totalConsensusParticipation: sql<number>`sum(consensus_participation)`
-      })
-      .from(nodes);
-
-    const topValidators = await db
-      .select()
-      .from(nodes)
-      .where(eq(nodes.type, 'validator'))
-      .orderBy(desc(nodes.consensusParticipation))
-      .limit(5);
-
-    return c.json({
-      network: stats[0] || {},
-      topValidators,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    return c.json({ error: 'Failed to fetch network stats' }, 500);
   }
 });
 
