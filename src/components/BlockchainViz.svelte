@@ -7,6 +7,45 @@
   let time = 0;
   let apiSyncEnabled = true;
 
+  // Throttle API sync to stay within Cloudflare free tier (100K req/day)
+  let lastApiSync = 0;
+  const API_SYNC_INTERVAL = 10000; // Sync at most every 10 seconds
+  let pendingBlockSyncs: Array<{hash: string, previousHash: string, height: number, chainId: string, transactionCount: number, minerAddress: string, difficulty: number, nonce: number}> = [];
+  let pendingClickCount = 0;
+  let pendingMiningStats: {speedMultiplier: number, blocksMinedCount?: number, totalClicks?: number, averageMiningTime?: number, peakSpeedMultiplier?: number} | null = null;
+
+  async function flushApiSync() {
+    const now = Date.now();
+    if (now - lastApiSync < API_SYNC_INTERVAL) return;
+    lastApiSync = now;
+
+    try {
+      // Sync latest block only (skip intermediate ones)
+      const latestBlock = pendingBlockSyncs.pop();
+      if (latestBlock) {
+        await api.createBlock(latestBlock);
+        pendingBlockSyncs = [];
+      }
+
+      // Sync aggregated mining stats
+      if (pendingMiningStats) {
+        await api.updateMiningStats(pendingMiningStats);
+        pendingMiningStats = null;
+      }
+
+      // Record aggregated click interactions
+      if (pendingClickCount > 0) {
+        await api.recordInteraction({
+          type: 'click',
+          data: JSON.stringify({ clicks: pendingClickCount })
+        });
+        pendingClickCount = 0;
+      }
+    } catch (error) {
+      console.error('API batch sync failed:', error);
+    }
+  }
+
   interface Node {
     x: number;
     y: number;
@@ -264,37 +303,16 @@
       
       this.userTransactions.push(userNode);
       
-      // Sync with backend API if enabled
+      // Queue for batched API sync (throttled to reduce QPS)
       if (apiSyncEnabled) {
-        try {
-          // Record interaction
-          await api.recordInteraction({
-            type: 'click',
-            positionX: x,
-            positionY: y
-          });
-          
-          // Create transaction in backend
-          const tx = await api.createTransaction({
-            hash: userNode.hash,
-            fromAddress: `0x${this.generateHash().substring(0, 40)}`,
-            toAddress: `0x${this.generateHash().substring(0, 40)}`,
-            value: Math.random() * 100 + 10,
-            fee: Math.random() * 10,
-            status: 'pending',
-            userCreated: true
-          });
-          
-          // Update mining stats
-          const validSpeedMultiplier = Math.max(Number(this.miningSpeedMultiplier) || 1, 1);
-          await api.updateMiningStats({
-            speedMultiplier: validSpeedMultiplier,
-            totalClicks: Math.max(Number(this.clicksInLastPeriod) || 0, 0),
-            peakSpeedMultiplier: Math.max(validSpeedMultiplier, 1)
-          });
-        } catch (error) {
-          console.error('API sync failed:', error);
-        }
+        pendingClickCount++;
+        const validSpeedMultiplier = Math.max(Number(this.miningSpeedMultiplier) || 1, 1);
+        pendingMiningStats = {
+          speedMultiplier: validSpeedMultiplier,
+          totalClicks: Math.max(Number(this.clicksInLastPeriod) || 0, 0),
+          peakSpeedMultiplier: Math.max(validSpeedMultiplier, 1)
+        };
+        flushApiSync();
       }
       
       // Add to mempool with special visual
@@ -436,54 +454,25 @@
       
       miningChain.blocks.push(newBlock);
       
-      // Sync with backend API if enabled
+      // Queue block for batched API sync (throttled to reduce QPS)
       if (apiSyncEnabled) {
-        try {
-          // Create block in backend
-          await api.createBlock({
-            hash: newBlock.hash,
-            previousHash: newBlock.prevHash,
-            height: newBlock.height,
-            chainId: `chain-${miningChain.id}`,
-            transactionCount: newBlock.transactions,
-            minerAddress: `0x${this.generateHash().substring(0, 40)}`,
-            difficulty: Math.floor(Math.random() * 100) + 1,
-            nonce: Math.floor(Math.random() * 1000000)
-          });
-          
-          // Update confirmed transactions
-          const confirmedTxs = this.mempool.filter(tx => tx.targetBlock === newBlock);
-          for (const tx of confirmedTxs.slice(0, 5)) { // Limit API calls
-            try {
-              await api.updateTransactionStatus(tx.hash, {
-                blockHash: newBlock.hash,
-                status: 'confirmed'
-              });
-            } catch (error) {
-              // Transaction might not exist in backend
-            }
-          }
-          
-          // Record mining boost interaction
-          await api.recordInteraction({
-            type: 'mining_boost',
-            data: JSON.stringify({ 
-              blockHash: newBlock.hash, 
-              chainId: miningChain.id,
-              speedMultiplier: this.miningSpeedMultiplier 
-            })
-          });
-          
-          // Update mining stats
-          const validSpeedMultiplier = Math.max(Number(this.miningSpeedMultiplier) || 1, 1);
-          await api.updateMiningStats({
-            speedMultiplier: validSpeedMultiplier,
-            blocksMinedCount: Math.max(this.chains.reduce((acc, chain) => acc + chain.blocks.length, 0) || 0, 0),
-            averageMiningTime: Math.max(Number(this.currentMiningTime) || 5000, 1)
-          });
-        } catch (error) {
-          console.error('API block sync failed:', error);
-        }
+        pendingBlockSyncs.push({
+          hash: newBlock.hash,
+          previousHash: newBlock.prevHash,
+          height: newBlock.height,
+          chainId: `chain-${miningChain.id}`,
+          transactionCount: newBlock.transactions,
+          minerAddress: `0x${this.generateHash().substring(0, 40)}`,
+          difficulty: Math.floor(Math.random() * 100) + 1,
+          nonce: Math.floor(Math.random() * 1000000)
+        });
+        const validSpeedMultiplier = Math.max(Number(this.miningSpeedMultiplier) || 1, 1);
+        pendingMiningStats = {
+          speedMultiplier: validSpeedMultiplier,
+          blocksMinedCount: Math.max(this.chains.reduce((acc, chain) => acc + chain.blocks.length, 0) || 0, 0),
+          averageMiningTime: Math.max(Number(this.currentMiningTime) || 5000, 1)
+        };
+        flushApiSync();
       }
       
       // Include user transactions with priority
