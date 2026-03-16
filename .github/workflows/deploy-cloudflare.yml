@@ -1,4 +1,4 @@
-name: Deploy StarsLab Site to Cloudflare Pages
+name: Deploy StarsLab Site to Cloudflare
 
 on:
   push:
@@ -27,17 +27,23 @@ jobs:
           cache: npm
           cache-dependency-path: www/package-lock.json
 
-      - name: Install deps
+      - name: Install frontend deps
         run: npm ci --no-audit --no-fund
 
-      - name: Build
+      - name: Build frontend
         run: npm run build
 
-      - name: Publish to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: 5ccbd2ab14501cd236498638428d638d
-          projectName: starslab-site
-          directory: dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install API deps
+        run: cd api && npm ci --no-audit --no-fund
+
+      - name: Apply D1 migrations
+        run: cd api && npx wrangler d1 migrations apply starslab-db --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 5ccbd2ab14501cd236498638428d638d
+
+      - name: Deploy Worker API
+        run: cd api && npx wrangler deploy --minify src/site-worker.ts
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 5ccbd2ab14501cd236498638428d638d

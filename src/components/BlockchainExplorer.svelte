@@ -136,7 +136,7 @@
   onMount(() => {
     loadData();
     // Refresh data every 10 seconds
-    refreshInterval = setInterval(loadData, 10000);
+    refreshInterval = setInterval(loadData, 30000);
   });
 
   onDestroy(() => {

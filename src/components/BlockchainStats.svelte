@@ -52,7 +52,7 @@
   onMount(() => {
     fetchStats();
     // Refresh stats every 5 seconds
-    refreshInterval = setInterval(fetchStats, 5000);
+    refreshInterval = setInterval(fetchStats, 30000);
   });
 
   onDestroy(() => {
