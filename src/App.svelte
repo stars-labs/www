@@ -5,15 +5,21 @@
   import CTA from "./components/CTA.svelte";
   import Footer from "./components/Footer.svelte";
   import WebGPUParticles from "./components/WebGPUParticles.svelte";
-  import TechGrid from "./components/TechGrid.svelte";
   import GlitchEffect from "./components/GlitchEffect.svelte";
   import BlockchainViz from "./components/BlockchainViz.svelte";
   import BlockchainStats from "./components/BlockchainStats.svelte";
   import BlockchainExplorer from "./components/BlockchainExplorer.svelte";
+  import LiveBlockFeed from "./components/LiveBlockFeed.svelte";
+  import TransactionPanel from "./components/TransactionPanel.svelte";
   import { currentRoute, navigateTo } from "./lib/router";
   import faviconUrl from "/favicon.png";
 
   let mobileMenuOpen = false;
+
+  function handleUserTx(e: CustomEvent<{ from: string; to: string; amount: number }>) {
+    // Dispatch a custom window event that BlockchainViz listens for
+    window.dispatchEvent(new CustomEvent('user-tx', { detail: e.detail }));
+  }
 
   function scrollToId(id: string) {
     const el = document.getElementById(id);
@@ -36,9 +42,9 @@
 {#if $currentRoute === 'home'}
   <BlockchainViz />
   <WebGPUParticles />
-  <TechGrid />
   <GlitchEffect />
   <BlockchainStats />
+  <TransactionPanel on:submit={handleUserTx} />
 {/if}
 
 <nav
@@ -161,8 +167,24 @@
 </nav>
 
 {#if $currentRoute === 'home'}
-  <main class="relative" style="z-index: 10;">
+  <!-- Full-viewport hero section with blockchain viz as backdrop -->
+  <section class="relative min-h-screen flex items-center justify-center" style="z-index: 10;">
     <Hero {scrollToId} />
+    <!-- Interactive hint -->
+    <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-pulse-slow">
+      <span class="text-white/60 text-sm font-mono tracking-wider">Click anywhere to mine blocks</span>
+      <svg class="w-5 h-5 text-brand-neon/60 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Live block feed bridging viz → explorer -->
+  <div class="relative" style="z-index: 10;">
+    <LiveBlockFeed />
+  </div>
+
+  <main class="relative" style="z-index: 10;">
     <div id="pillars"><Pillars /></div>
     <div id="projects"><Showcase /></div>
     <CTA />

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { api } from '../services/api';
-  import type { Block, Transaction, ChainFork } from '../services/api';
+  import type { Block, Transaction } from '../services/api';
 
-  let activeTab: 'blocks' | 'transactions' | 'forks' = 'blocks';
+  let activeTab: 'blocks' | 'transactions' = 'blocks';
   let searchQuery = '';
   let searchType: 'block' | 'tx' = 'block';
   let isLoading = false;
@@ -12,39 +12,35 @@
   // Data
   let blocks: Block[] = [];
   let transactions: Transaction[] = [];
-  let chainForks: ChainFork[] = [];
   let selectedBlock: Block | null = null;
   let selectedTx: Transaction | null = null;
   let stats = {
     totalBlocks: 0,
     totalTransactions: 0,
     pendingTxs: 0,
-    chains: [] as Array<{ chainId: string; blockCount: number; maxHeight: number }>
+    latestHeight: 0
   };
 
-  let refreshInterval: NodeJS.Timeout;
+  let refreshInterval: ReturnType<typeof setInterval>;
 
   async function loadData() {
     isLoading = true;
     error = '';
 
     try {
-      const [blockData, forkData, statsData, txStats] = await Promise.all([
+      const [blockData, statsData, txStats] = await Promise.all([
         api.getBlocks(20, 0),
-        api.getChainForks(),
         api.getChainStats(),
         api.getTransactionStats()
       ]);
 
       blocks = blockData.blocks;
-      // Use recent transactions from stats which includes pending ones
       transactions = txStats.recentTransactions || [];
-      chainForks = forkData;
       stats = {
         totalBlocks: statsData.totalBlocks,
         totalTransactions: txStats.totalTransactions,
         pendingTxs: txStats.pendingCount,
-        chains: statsData.chains
+        latestHeight: statsData.latestHeight
       };
     } catch (err) {
       error = 'Failed to load blockchain data';
@@ -90,12 +86,8 @@
 
   async function loadMoreTransactions() {
     try {
-      // Load from mempool (pending transactions) since that's where they are
-      const mempool = await api.getMempool();
-      // Get unique transactions not already displayed
-      const existingHashes = new Set(transactions.map(tx => tx.hash));
-      const newTxs = mempool.mempool.filter(tx => !existingHashes.has(tx.hash));
-      transactions = [...transactions, ...newTxs.slice(0, 20)];
+      const moreTxs = await api.getTransactions(20, transactions.length);
+      transactions = [...transactions, ...moreTxs.transactions];
     } catch (err) {
       console.error('Failed to load more transactions', err);
     }
@@ -106,22 +98,30 @@
     return hash.length > 16 ? `${hash.slice(0, 8)}...${hash.slice(-6)}` : hash;
   }
 
-  function formatTime(timestamp: Date | string | null): string {
+  function formatTime(timestamp: number | null): string {
     if (!timestamp) return 'Pending';
-    
+
     const date = new Date(timestamp);
-    // Check for invalid date (e.g., null parsed as date)
     if (isNaN(date.getTime())) return 'Pending';
-    
+
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    
-    if (diff < 0) return 'Future'; // Handle future dates
+
+    if (diff < 0) return date.toLocaleString();
     if (diff < 60000) return 'Just now';
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
     return date.toLocaleDateString();
+  }
+
+  function formatValue(value: string): string {
+    // Value is in wei (string), convert to readable format
+    const num = parseFloat(value);
+    if (isNaN(num)) return value;
+    if (num >= 1e18) return (num / 1e18).toFixed(4) + ' ETH';
+    if (num >= 1e9) return (num / 1e9).toFixed(2) + ' Gwei';
+    return num.toLocaleString();
   }
 
   function getStatusColor(status: string): string {
@@ -135,7 +135,6 @@
 
   onMount(() => {
     loadData();
-    // Refresh data every 10 seconds
     refreshInterval = setInterval(loadData, 30000);
   });
 
@@ -169,15 +168,15 @@
         <div class="text-2xl font-bold text-yellow-400">{stats.pendingTxs.toLocaleString()}</div>
       </div>
       <div class="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-4">
-        <div class="text-sm text-gray-400 mb-1">Active Chains</div>
-        <div class="text-2xl font-bold text-cyan-400">{stats.chains.length}</div>
+        <div class="text-sm text-gray-400 mb-1">Latest Height</div>
+        <div class="text-2xl font-bold text-cyan-400">{stats.latestHeight.toLocaleString()}</div>
       </div>
     </div>
 
     <!-- Search Bar -->
     <div class="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-4 mb-8">
       <div class="flex flex-col md:flex-row gap-4">
-        <select 
+        <select
           bind:value={searchType}
           class="px-4 py-2 bg-gray-800 border border-cyan-500/30 rounded-lg focus:outline-none focus:border-cyan-400"
         >
@@ -218,12 +217,6 @@
       >
         Transactions
       </button>
-      <button
-        on:click={() => activeTab = 'forks'}
-        class="pb-3 px-2 font-semibold transition {activeTab === 'forks' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-white'}"
-      >
-        Chain Forks
-      </button>
     </div>
 
     <!-- Content -->
@@ -238,10 +231,10 @@
               <tr>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Height</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Hash</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Chain</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Txs</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Miner</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Time</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Difficulty</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Timestamp</th>
               </tr>
             </thead>
             <tbody>
@@ -249,9 +242,9 @@
                 <tr class="bg-cyan-500/10 border-b border-cyan-500/30">
                   <td class="px-4 py-3 font-mono text-cyan-400">#{selectedBlock.height}</td>
                   <td class="px-4 py-3 font-mono text-cyan-400">{formatHash(selectedBlock.hash)}</td>
-                  <td class="px-4 py-3 text-sm">{selectedBlock.chainId}</td>
-                  <td class="px-4 py-3">{selectedBlock.transactionCount || 0}</td>
+                  <td class="px-4 py-3">{selectedBlock.txCount || 0}</td>
                   <td class="px-4 py-3 font-mono text-xs">{formatHash(selectedBlock.minerAddress || '')}</td>
+                  <td class="px-4 py-3">{selectedBlock.difficulty}</td>
                   <td class="px-4 py-3 text-sm text-gray-400">{formatTime(selectedBlock.timestamp)}</td>
                 </tr>
               {/if}
@@ -260,9 +253,9 @@
                     on:click={() => selectedBlock = block}>
                   <td class="px-4 py-3 font-mono text-cyan-400">#{block.height}</td>
                   <td class="px-4 py-3 font-mono text-cyan-400">{formatHash(block.hash)}</td>
-                  <td class="px-4 py-3 text-sm">{block.chainId}</td>
-                  <td class="px-4 py-3">{block.transactionCount || 0}</td>
+                  <td class="px-4 py-3">{block.txCount || 0}</td>
                   <td class="px-4 py-3 font-mono text-xs">{formatHash(block.minerAddress || '')}</td>
+                  <td class="px-4 py-3">{block.difficulty}</td>
                   <td class="px-4 py-3 text-sm text-gray-400" title={block.timestamp ? new Date(block.timestamp).toLocaleString() : 'No timestamp'}>{formatTime(block.timestamp)}</td>
                 </tr>
               {/each}
@@ -288,7 +281,7 @@
                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">To</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Value</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Status</th>
-                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Time</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Block</th>
               </tr>
             </thead>
             <tbody>
@@ -297,11 +290,11 @@
                   <td class="px-4 py-3 font-mono text-cyan-400">{formatHash(selectedTx.hash)}</td>
                   <td class="px-4 py-3 font-mono text-xs">{formatHash(selectedTx.fromAddress)}</td>
                   <td class="px-4 py-3 font-mono text-xs">{formatHash(selectedTx.toAddress)}</td>
-                  <td class="px-4 py-3">{selectedTx.value.toFixed(2)}</td>
+                  <td class="px-4 py-3">{formatValue(selectedTx.value)}</td>
                   <td class="px-4 py-3">
                     <span class="{getStatusColor(selectedTx.status)}">{selectedTx.status}</span>
                   </td>
-                  <td class="px-4 py-3 text-sm text-gray-400" title={selectedTx.createdAt ? new Date(selectedTx.createdAt).toLocaleString() : 'Pending transaction'}>{formatTime(selectedTx.createdAt)}</td>
+                  <td class="px-4 py-3 text-sm">{selectedTx.blockHeight ?? 'Pending'}</td>
                 </tr>
               {/if}
               {#each transactions as tx}
@@ -310,11 +303,11 @@
                   <td class="px-4 py-3 font-mono text-cyan-400">{formatHash(tx.hash)}</td>
                   <td class="px-4 py-3 font-mono text-xs">{formatHash(tx.fromAddress)}</td>
                   <td class="px-4 py-3 font-mono text-xs">{formatHash(tx.toAddress)}</td>
-                  <td class="px-4 py-3">{tx.value.toFixed(2)}</td>
+                  <td class="px-4 py-3">{formatValue(tx.value)}</td>
                   <td class="px-4 py-3">
                     <span class="{getStatusColor(tx.status)}">{tx.status}</span>
                   </td>
-                  <td class="px-4 py-3 text-sm text-gray-400" title={tx.createdAt ? new Date(tx.createdAt).toLocaleString() : 'Pending transaction'}>{formatTime(tx.createdAt)}</td>
+                  <td class="px-4 py-3 text-sm">{tx.blockHeight ?? 'Pending'}</td>
                 </tr>
               {/each}
             </tbody>
@@ -327,43 +320,6 @@
           >
             Load More Transactions
           </button>
-        </div>
-      {:else if activeTab === 'forks'}
-        <!-- Chain Forks -->
-        <div class="p-6">
-          <div class="grid gap-4">
-            {#each chainForks as fork}
-              <div class="bg-gray-800/30 border border-cyan-500/20 rounded-lg p-4">
-                <div class="flex justify-between items-start mb-2">
-                  <div>
-                    <div class="font-semibold text-cyan-400">Fork ID: {fork.forkId}</div>
-                    <div class="text-sm text-gray-400">Parent Chain: {fork.parentChainId}</div>
-                  </div>
-                  <div class="text-right">
-                    {#if fork.isMainChain}
-                      <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded">Main Chain</span>
-                    {:else}
-                      <span class="px-2 py-1 bg-gray-500/20 text-gray-400 text-xs rounded">Side Chain</span>
-                    {/if}
-                  </div>
-                </div>
-                <div class="grid grid-cols-3 gap-4 mt-3 text-sm">
-                  <div>
-                    <span class="text-gray-500">Fork Height:</span>
-                    <span class="ml-2">#{fork.forkHeight}</span>
-                  </div>
-                  <div>
-                    <span class="text-gray-500">Total Blocks:</span>
-                    <span class="ml-2">{fork.totalBlocks}</span>
-                  </div>
-                  <div>
-                    <span class="text-gray-500">Created:</span>
-                    <span class="ml-2">{formatTime(fork.createdAt)}</span>
-                  </div>
-                </div>
-              </div>
-            {/each}
-          </div>
         </div>
       {/if}
     </div>

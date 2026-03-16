@@ -48,8 +48,17 @@ app.get('/stats/network', async (c) => {
       .orderBy(desc(nodes.consensusParticipation))
       .limit(5);
 
+    const raw = stats[0] || {};
     return c.json({
-      network: stats[0] || {},
+      network: {
+        totalNodes: raw.totalNodes ?? 0,
+        activeNodes: raw.activeNodes ?? 0,
+        validators: raw.validators ?? 0,
+        miners: raw.miners ?? 0,
+        peers: raw.peers ?? 0,
+        smartContracts: raw.smartContracts ?? 0,
+        totalConsensusParticipation: raw.totalConsensusParticipation ?? 0
+      },
       topValidators,
       timestamp: new Date().toISOString()
     });
@@ -188,8 +197,14 @@ app.post('/:nodeId/heartbeat', async (c) => {
   }
 });
 
-// Deactivate inactive nodes (maintenance endpoint)
+// Deactivate inactive nodes (maintenance endpoint - internal use only)
 app.post('/maintenance/deactivate-inactive', async (c) => {
+  // Basic auth guard: require X-Admin-Key header
+  const adminKey = c.req.header('X-Admin-Key');
+  if (!adminKey || adminKey !== (c.env as any)?.ADMIN_KEY) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
   const db = c.get('db');
   const hoursInactive = Number(c.req.query('hours')) || 24;
 

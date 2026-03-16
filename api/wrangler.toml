@@ -8,11 +8,6 @@ workers_dev = true
 [site]
 bucket = "../dist"
 
-[env.production]
-name = "starslab-app-production"
-workers_dev = false
-route = "starslab.io/*"
-
 [[d1_databases]]
 binding = "DB"
 database_name = "starslab-db"

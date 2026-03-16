@@ -71,7 +71,8 @@
 
     initDataStreams() {
       this.dataStreams = [];
-      const streamCount = Math.floor(this.width / 80);
+      const isMobile = this.width < 768;
+      const streamCount = isMobile ? Math.floor(this.width / 160) : Math.floor(this.width / 80);
       
       for (let i = 0; i < streamCount; i++) {
         const chars = [];
@@ -92,7 +93,9 @@
     }
 
     initParticles() {
-      const particleCount = Math.min(200, Math.floor((this.width * this.height) / 10000));
+      const isMobile = this.width < 768;
+      const maxParticles = isMobile ? 60 : 200;
+      const particleCount = Math.min(maxParticles, Math.floor((this.width * this.height) / 10000));
       this.particles = [];
       
       // Create grid of particles with orbital motion
@@ -355,8 +358,8 @@
         this.ctx.stroke();
       }
       
-      // Draw particle connections with dynamic opacity
-      this.particles.forEach((particle, i) => {
+      // Draw particle connections with dynamic opacity (skip on mobile for performance)
+      if (this.width >= 768) this.particles.forEach((particle, i) => {
         for (let j = i + 1; j < this.particles.length; j++) {
           const other = this.particles[j];
           const dx = particle.x - other.x;

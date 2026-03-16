@@ -12,7 +12,7 @@
     userInteractions: 0
   };
 
-  let refreshInterval: NodeJS.Timeout;
+  let refreshInterval: ReturnType<typeof setInterval>;
   let isLoading = false;
   let apiConnected = false;
 
@@ -23,21 +23,21 @@
     try {
       // Fetch multiple stats in parallel
       const [chainStats, txStats, networkStats, miningStats, globalAnalytics] = await Promise.all([
-        api.getChainStats(),
-        api.getTransactionStats(),
-        api.getNetworkStats(),
+        api.getChainStats().catch(() => ({ totalBlocks: 0, latestHeight: 0 })),
+        api.getTransactionStats().catch(() => ({ totalTransactions: 0, pendingCount: 0, confirmedCount: 0 })),
+        api.getNetworkStats().catch(() => ({ network: { activeNodes: 0 } })),
         api.getMiningStats().catch(() => null),
-        api.getGlobalAnalytics(1)
+        api.getGlobalAnalytics(1).catch(() => ({ interactions: {}, mining: {} }))
       ]);
 
       stats = {
-        totalBlocks: chainStats.totalBlocks,
-        totalTransactions: txStats.totalTransactions,
-        pendingTxs: txStats.pendingCount,
-        confirmedTxs: txStats.confirmedCount,
-        activeNodes: networkStats.network.activeNodes || 0,
+        totalBlocks: chainStats?.totalBlocks || 0,
+        totalTransactions: txStats?.totalTransactions || 0,
+        pendingTxs: txStats?.pendingCount || 0,
+        confirmedTxs: txStats?.confirmedCount || 0,
+        activeNodes: networkStats?.network?.activeNodes || 0,
         miningSpeed: miningStats?.speedMultiplier || 1,
-        userInteractions: globalAnalytics.interactions.totalInteractions || 0
+        userInteractions: globalAnalytics?.interactions?.totalInteractions || 0
       };
 
       apiConnected = true;

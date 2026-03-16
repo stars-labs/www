@@ -14,7 +14,7 @@
   });
 </script>
 
-<section class="section pt-32 pb-24 flex flex-col gap-10 relative">
+<section class="max-w-7xl mx-auto px-6 md:px-10 pt-20 pb-10 flex flex-col gap-10 relative">
   <div class="max-w-3xl space-y-6 relative z-10">
     <h1 class="text-4xl md:text-6xl font-extrabold leading-tight hero-title" class:visible={titleVisible}>
       Building the <span class="gradient-text animated-gradient">Convergent Future</span><br />

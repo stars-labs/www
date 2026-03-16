@@ -1,80 +1,86 @@
 import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
-// Blockchain blocks table
+// Blockchain blocks table — matches actual D1 schema
 export const blocks = sqliteTable('blocks', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  hash: text('hash').notNull().unique(),
+  height: integer('height').primaryKey(),
+  hash: text('hash').notNull(),
   previousHash: text('previous_hash').notNull(),
-  height: integer('height').notNull(),
-  chainId: text('chain_id').notNull(),
-  timestamp: integer('timestamp', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  transactionCount: integer('transaction_count').notNull().default(0),
-  minerAddress: text('miner_address'),
-  difficulty: real('difficulty'),
-  nonce: integer('nonce'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+  merkleRoot: text('merkle_root'),
+  timestamp: integer('timestamp').notNull(),
+  difficulty: integer('difficulty').notNull(),
+  nonce: text('nonce').notNull(),
+  minerAddress: text('miner_address').notNull(),
+  reward: text('reward').notNull(),
+  txCount: integer('tx_count').notNull().default(0),
+  gasUsed: text('gas_used'),
+  createdAt: integer('created_at').notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 
-// Transactions table
+// Transactions table — matches actual D1 schema
 export const transactions = sqliteTable('transactions', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  hash: text('hash').notNull().unique(),
-  blockHash: text('block_hash').references(() => blocks.hash),
+  hash: text('hash').primaryKey(),
+  blockHeight: integer('block_height'),
   fromAddress: text('from_address').notNull(),
   toAddress: text('to_address').notNull(),
-  value: real('value').notNull(),
-  fee: real('fee'),
-  status: text('status', { enum: ['pending', 'confirmed', 'failed'] }).notNull().default('pending'),
-  userCreated: integer('user_created', { mode: 'boolean' }).default(false),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+  value: text('value').notNull(),
+  gasLimit: integer('gas_limit').notNull().default(21000),
+  gasPrice: text('gas_price').notNull().default('1'),
+  gasUsed: integer('gas_used').default(21000),
+  nonce: integer('nonce').notNull(),
+  signature: text('signature'),
+  status: text('status').notNull().default('pending'),
+  createdAt: integer('created_at').notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 
-// User interactions table (for analytics)
-export const interactions = sqliteTable('interactions', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  sessionId: text('session_id').notNull(),
-  type: text('type', { enum: ['click', 'transaction', 'mining_boost'] }).notNull(),
-  data: text('data'), // JSON string for additional data
-  positionX: real('position_x'),
-  positionY: real('position_y'),
-  timestamp: integer('timestamp', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+// Wallets table
+export const wallets = sqliteTable('wallets', {
+  address: text('address').primaryKey(),
+  balance: text('balance').notNull(),
+  nonce: integer('nonce').notNull(),
+  createdAt: integer('created_at').notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 
-// Mining statistics table
-export const miningStats = sqliteTable('mining_stats', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  sessionId: text('session_id').notNull(),
-  speedMultiplier: real('speed_multiplier').notNull().default(1),
-  blocksMinedCount: integer('blocks_mined_count').notNull().default(0),
-  totalClicks: integer('total_clicks').notNull().default(0),
-  averageMiningTime: real('average_mining_time'),
-  peakSpeedMultiplier: real('peak_speed_multiplier').notNull().default(1),
-  timestamp: integer('timestamp', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+// Mempool table
+export const mempool = sqliteTable('mempool', {
+  txHash: text('tx_hash').primaryKey(),
+  rawTx: text('raw_tx').notNull(),
+  priority: integer('priority'),
+  createdAt: integer('created_at').notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 
-// Network nodes table
-export const nodes = sqliteTable('nodes', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  nodeId: text('node_id').notNull().unique(),
-  type: text('type', { enum: ['validator', 'miner', 'peer', 'smart-contract'] }).notNull(),
-  address: text('address').notNull(),
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-  lastSeen: integer('last_seen', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  consensusParticipation: integer('consensus_participation').notNull().default(0),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+// Mining jobs table
+export const miningJobs = sqliteTable('mining_jobs', {
+  jobId: text('job_id').primaryKey(),
+  blockTemplate: text('block_template').notNull(),
+  target: text('target').notNull(),
+  minerAddress: text('miner_address'),
+  startedAt: integer('started_at').notNull(),
+  expiresAt: integer('expires_at').notNull(),
+  completed: integer('completed').notNull()
 });
 
-// Chain forks table
-export const chainForks = sqliteTable('chain_forks', {
+// Bot config table
+export const botConfig = sqliteTable('bot_config', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  forkId: text('fork_id').notNull().unique(),
-  parentChainId: text('parent_chain_id').notNull(),
-  forkHeight: integer('fork_height').notNull(),
-  isMainChain: integer('is_main_chain', { mode: 'boolean' }).notNull().default(false),
-  totalBlocks: integer('total_blocks').notNull().default(0),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  resolvedAt: integer('resolved_at', { mode: 'timestamp' })
+  mnemonic: text('mnemonic'),
+  address: text('address'),
+  privateKey: text('private_key'),
+  lastTxAt: integer('last_tx_at'),
+  txCount: integer('tx_count'),
+  createdAt: integer('created_at').notNull().default(sql`CURRENT_TIMESTAMP`)
+});
+
+// Chain state table
+export const chainState = sqliteTable('chain_state', {
+  id: integer('id').primaryKey(),
+  latestHeight: integer('latest_height'),
+  latestHash: text('latest_hash'),
+  totalSupply: text('total_supply'),
+  currentDifficulty: integer('current_difficulty'),
+  nextDifficultyAdjust: integer('next_difficulty_adjust'),
+  averageBlockTime: integer('average_block_time'),
+  updatedAt: integer('updated_at')
 });
 
 // Types for TypeScript
@@ -82,11 +88,5 @@ export type Block = typeof blocks.$inferSelect;
 export type NewBlock = typeof blocks.$inferInsert;
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
-export type Interaction = typeof interactions.$inferSelect;
-export type NewInteraction = typeof interactions.$inferInsert;
-export type MiningStats = typeof miningStats.$inferSelect;
-export type NewMiningStats = typeof miningStats.$inferInsert;
-export type Node = typeof nodes.$inferSelect;
-export type NewNode = typeof nodes.$inferInsert;
-export type ChainFork = typeof chainForks.$inferSelect;
-export type NewChainFork = typeof chainForks.$inferInsert;
+export type Wallet = typeof wallets.$inferSelect;
+export type ChainState = typeof chainState.$inferSelect;

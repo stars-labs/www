@@ -10,40 +10,38 @@
   // Throttle API sync to stay within Cloudflare free tier (100K req/day)
   let lastApiSync = 0;
   const API_SYNC_INTERVAL = 10000; // Sync at most every 10 seconds
+  const MAX_PENDING_BLOCKS = 50;
   let pendingBlockSyncs: Array<{hash: string, previousHash: string, height: number, chainId: string, transactionCount: number, minerAddress: string, difficulty: number, nonce: number}> = [];
   let pendingClickCount = 0;
   let pendingMiningStats: {speedMultiplier: number, blocksMinedCount?: number, totalClicks?: number, averageMiningTime?: number, peakSpeedMultiplier?: number} | null = null;
 
-  async function flushApiSync() {
-    const now = Date.now();
-    if (now - lastApiSync < API_SYNC_INTERVAL) return;
-    lastApiSync = now;
-
-    try {
-      // Sync latest block only (skip intermediate ones)
-      const latestBlock = pendingBlockSyncs.pop();
-      if (latestBlock) {
-        await api.createBlock(latestBlock);
-        pendingBlockSyncs = [];
-      }
-
-      // Sync aggregated mining stats
-      if (pendingMiningStats) {
-        await api.updateMiningStats(pendingMiningStats);
-        pendingMiningStats = null;
-      }
-
-      // Record aggregated click interactions
-      if (pendingClickCount > 0) {
-        await api.recordInteraction({
-          type: 'click',
-          data: JSON.stringify({ clicks: pendingClickCount })
-        });
-        pendingClickCount = 0;
-      }
-    } catch (error) {
-      console.error('API batch sync failed:', error);
+  function mergeMiningStats(update: typeof pendingMiningStats) {
+    if (!update) return;
+    if (!pendingMiningStats) {
+      pendingMiningStats = update;
+      return;
     }
+    // Keep highest values when merging
+    pendingMiningStats.speedMultiplier = Math.max(pendingMiningStats.speedMultiplier, update.speedMultiplier);
+    if (update.blocksMinedCount !== undefined) {
+      pendingMiningStats.blocksMinedCount = Math.max(pendingMiningStats.blocksMinedCount || 0, update.blocksMinedCount);
+    }
+    if (update.totalClicks !== undefined) {
+      pendingMiningStats.totalClicks = (pendingMiningStats.totalClicks || 0) + (update.totalClicks || 0);
+    }
+    if (update.averageMiningTime !== undefined) {
+      pendingMiningStats.averageMiningTime = update.averageMiningTime;
+    }
+    if (update.peakSpeedMultiplier !== undefined) {
+      pendingMiningStats.peakSpeedMultiplier = Math.max(pendingMiningStats.peakSpeedMultiplier || 1, update.peakSpeedMultiplier);
+    }
+  }
+
+  async function flushApiSync() {
+    // Clear pending data — the DB is populated by the mining bot, not the client viz
+    pendingBlockSyncs = [];
+    pendingMiningStats = null;
+    pendingClickCount = 0;
   }
 
   interface Node {
@@ -307,11 +305,11 @@
       if (apiSyncEnabled) {
         pendingClickCount++;
         const validSpeedMultiplier = Math.max(Number(this.miningSpeedMultiplier) || 1, 1);
-        pendingMiningStats = {
+        mergeMiningStats({
           speedMultiplier: validSpeedMultiplier,
           totalClicks: Math.max(Number(this.clicksInLastPeriod) || 0, 0),
           peakSpeedMultiplier: Math.max(validSpeedMultiplier, 1)
-        };
+        });
         flushApiSync();
       }
       
@@ -467,11 +465,11 @@
           nonce: Math.floor(Math.random() * 1000000)
         });
         const validSpeedMultiplier = Math.max(Number(this.miningSpeedMultiplier) || 1, 1);
-        pendingMiningStats = {
+        mergeMiningStats({
           speedMultiplier: validSpeedMultiplier,
           blocksMinedCount: Math.max(this.chains.reduce((acc, chain) => acc + chain.blocks.length, 0) || 0, 0),
           averageMiningTime: Math.max(Number(this.currentMiningTime) || 5000, 1)
-        };
+        });
         flushApiSync();
       }
       
@@ -1138,7 +1136,22 @@
       this.ctx!.fillText(`Mempool: ${this.mempool.length} tx`, 20, 90);
       this.ctx!.fillText(`Network Hash: ${this.generateHash()}`, 20, 110);
       this.ctx!.fillText(`Activity Level: ${Math.floor(this.userActivityLevel * 5)}`, 20, 130);
-      
+
+      // Tech stack labels (bottom-right)
+      const stackLabels = [
+        { label: 'Svelte 4 + Vite', color: 'rgba(233, 69, 96, 0.5)' },
+        { label: 'Hono API', color: 'rgba(0, 255, 255, 0.5)' },
+        { label: 'Cloudflare D1', color: 'rgba(255, 215, 0, 0.4)' },
+        { label: 'Workers Edge', color: 'rgba(0, 255, 255, 0.4)' },
+      ];
+      this.ctx!.font = '10px monospace';
+      this.ctx!.textAlign = 'right';
+      stackLabels.forEach((item, i) => {
+        const pulse = 0.6 + Math.sin(time * 0.001 + i * 1.2) * 0.4;
+        this.ctx!.fillStyle = item.color.replace(/[\d.]+\)$/, `${pulse * 0.5})`);
+        this.ctx!.fillText(item.label, this.width - 20, this.height - 20 - (stackLabels.length - 1 - i) * 16);
+      });
+
       // Instructions (changes based on speed)
       if (this.miningSpeedMultiplier > 10) {
         this.ctx!.fillStyle = 'rgba(255, 0, 255, 0.9)';
@@ -1186,12 +1199,21 @@
     }
   }
 
+  function handleUserTx(e: Event) {
+    if (network) {
+      const detail = (e as CustomEvent).detail as { from: string; to: string; amount: number };
+      // Create the transaction at the center of the screen for visibility
+      network.createUserTransaction(window.innerWidth / 2, window.innerHeight / 2);
+    }
+  }
+
   onMount(() => {
     if (canvas) {
       network = new BlockchainNetwork(canvas);
       animate();
       window.addEventListener('resize', handleResize);
       window.addEventListener('click', handleClick);
+      window.addEventListener('user-tx', handleUserTx);
     }
   });
 
@@ -1201,17 +1223,12 @@
     }
     window.removeEventListener('resize', handleResize);
     window.removeEventListener('click', handleClick);
+    window.removeEventListener('user-tx', handleUserTx);
   });
 </script>
 
 <canvas
   bind:this={canvas}
   class="fixed inset-0 w-full h-full"
-  style="z-index: 0; opacity: 0.3; pointer-events: auto;"
+  style="z-index: 0; opacity: 0.7; pointer-events: auto;"
 />
-
-<style>
-  canvas {
-    mix-blend-mode: screen;
-  }
-</style>

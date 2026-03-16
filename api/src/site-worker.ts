@@ -5,8 +5,6 @@ import { getAssetFromKV, serveSinglePageApp } from '@cloudflare/kv-asset-handler
 import manifestJSON from '__STATIC_CONTENT_MANIFEST';
 import blockchain from './routes/blockchain';
 import transactions from './routes/transactions';
-import analytics from './routes/analytics';
-import nodes from './routes/nodes';
 
 const assetManifest = JSON.parse(manifestJSON);
 
@@ -36,8 +34,6 @@ app.use('/api/*', async (c, next) => {
 // Mount API routes
 app.route('/api/blockchain', blockchain);
 app.route('/api/transactions', transactions);
-app.route('/api/analytics', analytics);
-app.route('/api/nodes', nodes);
 
 // Health check endpoint
 app.get('/api/health', (c) => {
@@ -58,15 +54,16 @@ app.all('*', async (c) => {
       passThroughOnException: () => {},
     };
 
+    const url = new URL(c.req.url);
+    const isHashed = /\.[a-f0-9]{8,}\.\w+$/.test(url.pathname);
+
     const options = {
       ASSET_NAMESPACE: c.env.__STATIC_CONTENT,
       ASSET_MANIFEST: assetManifest,
       mapRequestToAsset: serveSinglePageApp,
-      cacheControl: {
-        browserTTL: 60 * 60 * 24 * 365, // 1 year
-        edgeTTL: 60 * 60 * 24 * 30, // 30 days
-        bypassCache: false,
-      },
+      cacheControl: isHashed
+        ? { browserTTL: 60 * 60 * 24 * 365, edgeTTL: 60 * 60 * 24 * 30, bypassCache: false }
+        : { browserTTL: 0, edgeTTL: 0, bypassCache: true },
     };
 
     // Try to get the asset from KV

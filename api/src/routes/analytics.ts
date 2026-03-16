@@ -202,14 +202,31 @@ app.get('/global', async (c) => {
       .groupBy(sql`strftime('%Y-%m-%d %H:00', timestamp)`)
       .orderBy(desc(sql`strftime('%Y-%m-%d %H:00', timestamp)`));
 
+    // Null-safe: SQL aggregations return null when no rows match
+    const rawInteractions = interactionStats[0] || {};
+    const rawMining = miningPerformance[0] || {};
+
     return c.json({
       timeRange: {
         hours: hoursAgo,
         from: timeThreshold.toISOString(),
         to: new Date().toISOString()
       },
-      interactions: interactionStats[0] || {},
-      mining: miningPerformance[0] || {},
+      interactions: {
+        totalInteractions: rawInteractions.totalInteractions ?? 0,
+        uniqueSessions: rawInteractions.uniqueSessions ?? 0,
+        clickCount: rawInteractions.clickCount ?? 0,
+        transactionCount: rawInteractions.transactionCount ?? 0,
+        miningBoostCount: rawInteractions.miningBoostCount ?? 0
+      },
+      mining: {
+        avgSpeedMultiplier: rawMining.avgSpeedMultiplier ?? 0,
+        maxSpeedMultiplier: rawMining.maxSpeedMultiplier ?? 0,
+        totalBlocksMined: rawMining.totalBlocksMined ?? 0,
+        totalClicks: rawMining.totalClicks ?? 0,
+        avgMiningTime: rawMining.avgMiningTime ?? 0,
+        activeSessions: rawMining.activeSessions ?? 0
+      },
       activityByHour: recentActivity
     });
   } catch (error) {
