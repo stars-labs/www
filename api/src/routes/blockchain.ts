@@ -6,16 +6,30 @@ import { blocks, chainState } from "../db/schema";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 
 const app = new Hono<{
+  Bindings: {
+    DB: D1Database;
+  };
   Variables: {
     db: DrizzleD1Database;
   };
 }>();
 
+function clampInt(
+  raw: string | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  const n = Math.trunc(Number(raw));
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(Math.max(n, min), max);
+}
+
 // Get latest blocks
 app.get("/blocks", async (c) => {
   const db = c.get("db");
-  const limit = Number(c.req.query("limit")) || 10;
-  const offset = Number(c.req.query("offset")) || 0;
+  const limit = clampInt(c.req.query("limit"), 10, 1, 100);
+  const offset = clampInt(c.req.query("offset"), 0, 0, 1_000_000);
 
   try {
     const result = await db
@@ -46,7 +60,10 @@ const submitBlocksSchema = z.object({
     .array(
       z.object({
         hash: z.string().min(1).max(80),
-        minerAddress: z.string().min(1).max(80),
+        // Visitor blocks must carry the session-derived address format.
+        // This keeps the bot's namespace un-spoofable and makes visitor
+        // rows identifiable (and purgeable) by prefix.
+        minerAddress: z.string().regex(/^0xstu[a-z0-9]{1,20}$/),
         transactionCount: z.number().int().min(0).max(10000).optional(),
         difficulty: z.number().int().min(0).optional(),
         nonce: z.number().int().min(0).optional(),
@@ -58,36 +75,50 @@ const submitBlocksSchema = z.object({
 
 const VISITOR_BLOCK_REWARD = "1000000000000000000"; // matches bot reward (1 token in wei)
 
+// Append-at-tip insert: height and previous_hash are resolved inside the
+// statement, and OR IGNORE skips duplicate hashes (blocks.hash is UNIQUE in
+// production; visitor hashes are only 32 bits so collisions will happen).
+const APPEND_BLOCK_SQL = `
+  INSERT OR IGNORE INTO blocks (height, hash, previous_hash, timestamp, difficulty, nonce, miner_address, reward, tx_count, created_at)
+  SELECT
+    m.h + 1,
+    ?1,
+    COALESCE((SELECT bb.hash FROM blocks bb WHERE bb.height = m.h), '0x00000000'),
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6,
+    ?7,
+    ?2
+  FROM (SELECT COALESCE(MAX(height), 0) AS h FROM blocks) m
+`;
+
 app.post("/blocks", zValidator("json", submitBlocksSchema), async (c) => {
-  const db = c.get("db");
   const { blocks: incoming } = c.req.valid("json");
 
   try {
     const now = Date.now();
-    let inserted = 0;
+    // One D1 batch = one round-trip and one implicit transaction; statements
+    // run sequentially inside it, so each INSERT...SELECT sees the previous
+    // insert's MAX(height) and the whole batch is all-or-nothing.
+    const stmt = c.env.DB.prepare(APPEND_BLOCK_SQL);
+    const results = await c.env.DB.batch(
+      incoming.map((b) =>
+        stmt.bind(
+          b.hash,
+          now,
+          b.difficulty ?? 1,
+          String(b.nonce ?? 0),
+          b.minerAddress,
+          VISITOR_BLOCK_REWARD,
+          b.transactionCount ?? 0,
+        ),
+      ),
+    );
 
-    for (const b of incoming) {
-      // Atomic append-at-tip: height and previous_hash are resolved inside
-      // the INSERT so concurrent miners (visitors or the bot) never collide.
-      await db.run(sql`
-        INSERT INTO blocks (height, hash, previous_hash, timestamp, difficulty, nonce, miner_address, reward, tx_count, created_at)
-        SELECT
-          m.h + 1,
-          ${b.hash},
-          COALESCE((SELECT bb.hash FROM blocks bb WHERE bb.height = m.h), '0x00000000'),
-          ${now},
-          ${b.difficulty ?? 1},
-          ${String(b.nonce ?? 0)},
-          ${b.minerAddress},
-          ${VISITOR_BLOCK_REWARD},
-          ${b.transactionCount ?? 0},
-          ${now}
-        FROM (SELECT COALESCE(MAX(height), 0) AS h FROM blocks) m
-      `);
-      inserted++;
-    }
-
-    return c.json({ inserted }, 201);
+    const inserted = results.reduce((n, r) => n + (r.meta?.changes ?? 0), 0);
+    return c.json({ inserted, skipped: incoming.length - inserted }, 201);
   } catch (error) {
     console.error("Error submitting blocks:", error);
     return c.json({ error: "Failed to submit blocks" }, 500);

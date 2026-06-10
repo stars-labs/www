@@ -83,10 +83,12 @@ class APIService {
   }
 
   private getSessionId(): string {
-    let sessionId = sessionStorage.getItem("sessionId");
+    // localStorage (not sessionStorage) so the derived miner address — and
+    // the Explorer's "You" highlight — survives new tabs and return visits.
+    let sessionId = localStorage.getItem("minerSessionId");
     if (!sessionId) {
       sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      sessionStorage.setItem("sessionId", sessionId);
+      localStorage.setItem("minerSessionId", sessionId);
     }
     return sessionId;
   }

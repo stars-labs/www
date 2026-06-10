@@ -38,14 +38,14 @@
     }
   }
 
-  async function flushApiSync() {
+  async function flushApiSync(force = false) {
     // Mined blocks are uploaded in batches and appended to the shared chain
     // by the server. Mining stats / clicks stay local (no tables).
     pendingMiningStats = null;
     pendingClickCount = 0;
 
     const now = Date.now();
-    if (now - lastApiSync < API_SYNC_INTERVAL) return;
+    if (!force && now - lastApiSync < API_SYNC_INTERVAL) return;
     if (pendingBlockSyncs.length === 0) return;
     lastApiSync = now;
 
@@ -1237,6 +1237,9 @@
     window.removeEventListener('resize', handleResize);
     window.removeEventListener('click', handleClick);
     window.removeEventListener('user-tx', handleUserTx);
+    // Force-flush queued blocks so mining right before navigating to the
+    // Explorer doesn't silently lose the last <10s of blocks.
+    flushApiSync(true);
   });
 </script>
 
