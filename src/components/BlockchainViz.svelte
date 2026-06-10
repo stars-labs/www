@@ -38,10 +38,23 @@
   }
 
   async function flushApiSync() {
-    // Clear pending data — the DB is populated by the mining bot, not the client viz
-    pendingBlockSyncs = [];
+    // Mined blocks are uploaded in batches to the classroom chain so they
+    // show up in the Explorer. Mining stats / clicks stay local (no tables).
     pendingMiningStats = null;
     pendingClickCount = 0;
+
+    const now = Date.now();
+    if (now - lastApiSync < API_SYNC_INTERVAL) return;
+    if (pendingBlockSyncs.length === 0) return;
+    lastApiSync = now;
+
+    const batch = pendingBlockSyncs.splice(0, MAX_PENDING_BLOCKS);
+    try {
+      await api.syncClassroomBlocks(batch);
+    } catch (err) {
+      // Drop the batch on failure — visual sim keeps running regardless
+      console.warn('Classroom block sync failed:', err);
+    }
   }
 
   interface Node {

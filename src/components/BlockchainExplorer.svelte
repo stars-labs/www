@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { api } from '../services/api';
-  import type { Block, Transaction } from '../services/api';
+  import type { Block, ClassroomBlock, Transaction } from '../services/api';
 
+  let chain: 'mainnet' | 'classroom' = 'mainnet';
   let activeTab: 'blocks' | 'transactions' = 'blocks';
   let searchQuery = '';
   let searchType: 'block' | 'tx' = 'block';
@@ -11,6 +12,7 @@
 
   // Data
   let blocks: Block[] = [];
+  let classroomBlocks: ClassroomBlock[] = [];
   let transactions: Transaction[] = [];
   let selectedBlock: Block | null = null;
   let selectedTx: Transaction | null = null;
@@ -18,9 +20,11 @@
     totalBlocks: 0,
     totalTransactions: 0,
     pendingTxs: 0,
-    latestHeight: 0
+    latestHeight: 0,
+    uniqueMiners: 0
   };
 
+  const mySessionId = api.getMySessionId();
   let refreshInterval: ReturnType<typeof setInterval>;
 
   async function loadData() {
@@ -28,26 +32,55 @@
     error = '';
 
     try {
-      const [blockData, statsData, txStats] = await Promise.all([
-        api.getBlocks(20, 0),
-        api.getChainStats(),
-        api.getTransactionStats()
-      ]);
+      if (chain === 'classroom') {
+        const data = await api.getClassroomBlocks(20, 0);
+        classroomBlocks = data.blocks;
+        stats = {
+          totalBlocks: data.totalBlocks ?? 0,
+          totalTransactions: 0,
+          pendingTxs: 0,
+          latestHeight: data.latestHeight ?? 0,
+          uniqueMiners: data.uniqueMiners ?? 0
+        };
+      } else {
+        const [blockData, statsData, txStats] = await Promise.all([
+          api.getBlocks(20, 0),
+          api.getChainStats(),
+          api.getTransactionStats()
+        ]);
 
-      blocks = blockData.blocks;
-      transactions = txStats.recentTransactions || [];
-      stats = {
-        totalBlocks: statsData.totalBlocks ?? 0,
-        totalTransactions: txStats.totalTransactions ?? 0,
-        pendingTxs: txStats.pendingCount ?? 0,
-        latestHeight: statsData.latestHeight ?? 0
-      };
+        blocks = blockData.blocks;
+        transactions = txStats.recentTransactions || [];
+        stats = {
+          totalBlocks: statsData.totalBlocks ?? 0,
+          totalTransactions: txStats.totalTransactions ?? 0,
+          pendingTxs: txStats.pendingCount ?? 0,
+          latestHeight: statsData.latestHeight ?? 0,
+          uniqueMiners: 0
+        };
+      }
     } catch (err) {
       error = 'Failed to load blockchain data';
       console.error(err);
     } finally {
       isLoading = false;
     }
+  }
+
+  function switchChain(target: 'mainnet' | 'classroom') {
+    if (chain === target) return;
+    chain = target;
+    activeTab = 'blocks';
+    selectedBlock = null;
+    selectedTx = null;
+    error = '';
+    loadData();
+  }
+
+  function shortSession(sessionId: string | undefined): string {
+    if (!sessionId) return 'anonymous';
+    if (sessionId === mySessionId) return 'You';
+    return sessionId.slice(-6);
   }
 
   async function handleSearch() {
@@ -77,8 +110,13 @@
 
   async function loadMoreBlocks() {
     try {
-      const moreBlocks = await api.getBlocks(20, blocks.length);
-      blocks = [...blocks, ...moreBlocks.blocks];
+      if (chain === 'classroom') {
+        const more = await api.getClassroomBlocks(20, classroomBlocks.length);
+        classroomBlocks = [...classroomBlocks, ...more.blocks];
+      } else {
+        const moreBlocks = await api.getBlocks(20, blocks.length);
+        blocks = [...blocks, ...moreBlocks.blocks];
+      }
     } catch (err) {
       console.error('Failed to load more blocks', err);
     }
@@ -153,28 +191,58 @@
       <p class="text-gray-400">Explore blocks, transactions, and network activity</p>
     </div>
 
+    <!-- Chain Switcher -->
+    <div class="flex items-center gap-2 mb-6">
+      <button
+        on:click={() => switchChain('mainnet')}
+        class="px-4 py-2 rounded-lg text-sm font-semibold transition border {chain === 'mainnet' ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300' : 'border-gray-700 text-gray-400 hover:text-white'}"
+      >
+        ⛓ Mainnet
+      </button>
+      <button
+        on:click={() => switchChain('classroom')}
+        class="px-4 py-2 rounded-lg text-sm font-semibold transition border {chain === 'classroom' ? 'bg-yellow-500/20 border-yellow-400 text-yellow-300' : 'border-gray-700 text-gray-400 hover:text-white'}"
+      >
+        🎓 Classroom
+      </button>
+      {#if chain === 'classroom'}
+        <span class="text-xs text-gray-500 ml-2">Blocks mined by visitors on the homepage — click around there to add yours!</span>
+      {/if}
+    </div>
+
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
       <div class="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-4">
         <div class="text-sm text-gray-400 mb-1">Total Blocks</div>
         <div class="text-2xl font-bold text-cyan-400">{stats.totalBlocks.toLocaleString()}</div>
       </div>
-      <div class="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-4">
-        <div class="text-sm text-gray-400 mb-1">Transactions</div>
-        <div class="text-2xl font-bold text-cyan-400">{stats.totalTransactions.toLocaleString()}</div>
-      </div>
-      <div class="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-4">
-        <div class="text-sm text-gray-400 mb-1">Pending Txs</div>
-        <div class="text-2xl font-bold text-yellow-400">{stats.pendingTxs.toLocaleString()}</div>
-      </div>
+      {#if chain === 'classroom'}
+        <div class="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-4">
+          <div class="text-sm text-gray-400 mb-1">Unique Miners</div>
+          <div class="text-2xl font-bold text-yellow-400">{stats.uniqueMiners.toLocaleString()}</div>
+        </div>
+        <div class="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-4">
+          <div class="text-sm text-gray-400 mb-1">Your Session</div>
+          <div class="text-2xl font-bold text-cyan-400 font-mono">{mySessionId.slice(-6)}</div>
+        </div>
+      {:else}
+        <div class="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-4">
+          <div class="text-sm text-gray-400 mb-1">Transactions</div>
+          <div class="text-2xl font-bold text-cyan-400">{stats.totalTransactions.toLocaleString()}</div>
+        </div>
+        <div class="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-4">
+          <div class="text-sm text-gray-400 mb-1">Pending Txs</div>
+          <div class="text-2xl font-bold text-yellow-400">{stats.pendingTxs.toLocaleString()}</div>
+        </div>
+      {/if}
       <div class="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-4">
         <div class="text-sm text-gray-400 mb-1">Latest Height</div>
         <div class="text-2xl font-bold text-cyan-400">{stats.latestHeight.toLocaleString()}</div>
       </div>
     </div>
 
-    <!-- Search Bar -->
-    <div class="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-4 mb-8">
+    <!-- Search Bar (mainnet only) -->
+    <div class="bg-gray-900/50 backdrop-blur-sm border border-cyan-500/20 rounded-lg p-4 mb-8" class:hidden={chain === 'classroom'}>
       <div class="flex flex-col md:flex-row gap-4">
         <select
           bind:value={searchType}
@@ -211,18 +279,64 @@
       >
         Blocks
       </button>
-      <button
-        on:click={() => activeTab = 'transactions'}
-        class="pb-3 px-2 font-semibold transition {activeTab === 'transactions' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-white'}"
-      >
-        Transactions
-      </button>
+      {#if chain === 'mainnet'}
+        <button
+          on:click={() => activeTab = 'transactions'}
+          class="pb-3 px-2 font-semibold transition {activeTab === 'transactions' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-400 hover:text-white'}"
+        >
+          Transactions
+        </button>
+      {/if}
     </div>
 
     <!-- Content -->
     <div class="bg-gray-900/30 backdrop-blur-sm border border-cyan-500/20 rounded-lg overflow-hidden">
-      {#if isLoading && !blocks.length}
+      {#if isLoading && !blocks.length && !classroomBlocks.length}
         <div class="p-8 text-center text-gray-400">Loading blockchain data...</div>
+      {:else if chain === 'classroom'}
+        <!-- Classroom Blocks Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-800/50 border-b border-gray-700">
+              <tr>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Height</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Hash</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Txs</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Miner</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Difficulty</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Mined</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each classroomBlocks as block}
+                <tr class="border-b border-gray-800 hover:bg-gray-800/30 transition {block.sessionId === mySessionId ? 'bg-yellow-500/10' : ''}">
+                  <td class="px-4 py-3 font-mono text-cyan-400">#{block.height}</td>
+                  <td class="px-4 py-3 font-mono text-cyan-400">{formatHash(block.hash)}</td>
+                  <td class="px-4 py-3">{block.txCount || 0}</td>
+                  <td class="px-4 py-3 font-mono text-xs {block.sessionId === mySessionId ? 'text-yellow-300 font-bold' : ''}">{shortSession(block.sessionId)}</td>
+                  <td class="px-4 py-3">{block.difficulty ?? '—'}</td>
+                  <td class="px-4 py-3 text-sm text-gray-400">{formatTime(block.createdAt)}</td>
+                </tr>
+              {:else}
+                <tr>
+                  <td colspan="6" class="px-4 py-8 text-center text-gray-400">
+                    No classroom blocks yet — go to the homepage and click around to mine some!
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+        {#if classroomBlocks.length}
+          <div class="p-4 text-center">
+            <button
+              on:click={loadMoreBlocks}
+              class="px-4 py-2 text-cyan-400 hover:text-cyan-300 transition"
+            >
+              Load More Blocks
+            </button>
+          </div>
+        {/if}
       {:else if activeTab === 'blocks'}
         <!-- Blocks Table -->
         <div class="overflow-x-auto">
