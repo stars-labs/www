@@ -54,6 +54,15 @@ app.get("/api/health", (c) => {
 
 // Handle static assets
 app.all("*", async (c) => {
+  const { pathname } = new URL(c.req.url);
+
+  // Unmatched API paths must fail loudly as JSON, never fall through to
+  // the SPA shell (clients calling response.json() would get a cryptic
+  // "Unexpected token <" instead of a real error).
+  if (pathname.startsWith("/api/")) {
+    return c.json({ error: "Not Found", path: pathname }, 404);
+  }
+
   try {
     // Create event-like object for getAssetFromKV
     const event = {
@@ -78,7 +87,15 @@ app.all("*", async (c) => {
     const response = await getAssetFromKV(event, options);
     return response;
   } catch (e: any) {
-    // If asset not found or error, try to serve index.html for SPA routing
+    // A missing hashed asset means a stale client is requesting a chunk
+    // from a previous deploy. Serving index.html with 200 would brick the
+    // app ("expected JavaScript but got text/html"); a 404 lets the
+    // browser surface a load error the client can recover from.
+    if (pathname.startsWith("/assets/")) {
+      return c.text("Not Found", 404);
+    }
+
+    // Otherwise serve index.html for SPA routing
     try {
       const event = {
         request: new Request(new URL("/index.html", c.req.url).toString()),
