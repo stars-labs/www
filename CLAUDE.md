@@ -59,6 +59,8 @@ The `blocks` chain is **shared**: a mining bot (external to this repo) appends r
 
 ## Deployment
 
-GitHub Actions (`.github/workflows/deploy-cloudflare.yml`) on pushes to `main`: builds the frontend, applies D1 migrations remotely, then deploys the worker (`starslab-app`, routed to `starslab.io/*` in production). Requires `CLOUDFLARE_API_TOKEN` secret; account ID `5ccbd2ab14501cd236498638428d638d`, D1 database ID `774b90d0-2ce4-4d11-95b1-6b9c29028ad0`. The root `wrangler.toml` (Pages) is the legacy deploy path; the worker config in `api/wrangler.toml` is authoritative.
+**Deploys are manual, from a wrangler-authenticated machine**: `npm run build` at the root, then `cd api && npm run deploy` (optionally `npx wrangler d1 migrations apply starslab-db --remote` first — it's a no-op unless a new migration was added). The worker is `starslab-app` at starslab-app.freeman-xiong.workers.dev; account ID `5ccbd2ab14501cd236498638428d638d`, D1 database ID `774b90d0-2ce4-4d11-95b1-6b9c29028ad0`.
+
+The GitHub Actions workflow (`.github/workflows/deploy-cloudflare.yml`) is **manual-dispatch only** — the `CLOUDFLARE_API_TOKEN` secret was never configured. To enable push-triggered CI deploys, create an API token (Workers Scripts Edit + D1 Edit), `gh secret set CLOUDFLARE_API_TOKEN`, and restore the push trigger. The root `wrangler.toml` (Pages) is the legacy deploy path; the worker config in `api/wrangler.toml` is authoritative.
 
 `secrets.yaml` is SOPS-encrypted (PGP, rules in `.sops.yaml`) — never commit it decrypted.

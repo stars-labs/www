@@ -1,8 +1,10 @@
 name: Deploy StarsLab Site to Cloudflare
 
+# Deploys are done locally via `cd api && npm run deploy` (wrangler OAuth).
+# This workflow is manual-only because the CLOUDFLARE_API_TOKEN secret is
+# not configured; add the secret and restore a push trigger to re-enable
+# automatic deploys.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
