@@ -49,11 +49,9 @@ There are no automated tests in either package.
 
 ### Database
 
-`api/src/db/schema.ts` is written to match the **actual tables in the remote D1 database** (blocks, transactions, wallets, mempool, chain_state, etc.) — it was reverse-engineered from production, not driven by the migrations in `api/drizzle/`. Inspect with `npm run db:studio` or `wrangler d1 execute`. Do not regenerate/apply migrations against the remote DB without checking the real schema first.
+`api/src/db/schema.ts` matches the **actual tables in the remote D1 database**; migration `api/drizzle/0000` was rewritten from the production DDL, so a fresh local environment (`npx wrangler d1 migrations apply starslab-db --local`) gets the same schema as production. Inspect with `npm run db:studio` or `wrangler d1 execute`. Note `chain_state` is stale in production (nothing maintains it) and is not queried by any route.
 
-The `blocks` chain is **shared**: a mining bot (external to this repo) appends real blocks, and visitor-mined blocks from the homepage viz are submitted via `POST /api/blockchain/blocks`, which atomically appends them at the current tip (server assigns height and previous_hash via `INSERT ... SELECT MAX(height)+1`). Visitor miner addresses are session-derived (`0xstu…`, see `api.getMyMinerAddress()`) so the Explorer can highlight "You".
-
-If you run `wrangler dev` locally, the local D1 `blocks` table created by old migrations does NOT match production — recreate it from the production DDL (`wrangler d1 execute starslab-db --remote --command "SELECT sql FROM sqlite_master WHERE name='blocks'"`) before testing.
+The `blocks` chain is **shared**: a mining bot (external to this repo) appends real blocks, and visitor-mined blocks from the homepage viz are submitted in batches via `POST /api/blockchain/blocks`, which appends them at the current tip inside a single D1 `batch()` transaction (`INSERT OR IGNORE ... SELECT MAX(height)+1` — duplicate hashes are skipped, visitor hashes are only 32 bits). Visitor miner addresses are session-derived and must match `^0xstu[a-z0-9]{1,20}$` server-side, so the bot's namespace can't be spoofed and visitor rows are identifiable by prefix; the Explorer uses the same address (from localStorage) to highlight "You".
 
 ### Constraints
 

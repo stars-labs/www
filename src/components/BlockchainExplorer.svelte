@@ -29,19 +29,20 @@
     error = '';
 
     try {
-      const [blockData, statsData, txStats] = await Promise.all([
+      // Two requests per refresh: block totals ride along on /blocks,
+      // and the latest height is just the newest block's height.
+      const [blockData, txStats] = await Promise.all([
         api.getBlocks(20, 0),
-        api.getChainStats(),
         api.getTransactionStats()
       ]);
 
       blocks = blockData.blocks;
       transactions = txStats.recentTransactions || [];
       stats = {
-        totalBlocks: statsData.totalBlocks ?? 0,
+        totalBlocks: blockData.totalBlocks ?? 0,
         totalTransactions: txStats.totalTransactions ?? 0,
         pendingTxs: txStats.pendingCount ?? 0,
-        latestHeight: statsData.latestHeight ?? 0
+        latestHeight: blockData.blocks[0]?.height ?? 0
       };
     } catch (err) {
       error = 'Failed to load blockchain data';

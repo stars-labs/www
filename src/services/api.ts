@@ -34,17 +34,6 @@ export interface Block {
   createdAt: number;
 }
 
-export interface ChainState {
-  id: number;
-  latestHeight: number;
-  latestHash: string;
-  totalSupply: string;
-  currentDifficulty: number;
-  nextDifficultyAdjust: number;
-  averageBlockTime: number;
-  updatedAt: number;
-}
-
 class APIService {
   private sessionId: string;
 
@@ -90,7 +79,7 @@ class APIService {
       offset: offset.toString(),
     });
 
-    return this.request<{ blocks: Block[]; count: number }>(
+    return this.request<{ blocks: Block[]; count: number; totalBlocks: number }>(
       `/blockchain/blocks?${params}`,
     );
   }
@@ -104,7 +93,6 @@ class APIService {
       totalBlocks: number;
       latestHeight: number;
       recentBlocks: Block[];
-      chainState: ChainState | null;
       timestamp: string;
     }>("/blockchain/stats");
   }

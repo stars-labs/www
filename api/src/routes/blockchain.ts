@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { desc, sql } from "drizzle-orm";
-import { blocks, chainState } from "../db/schema";
+import { blocks } from "../db/schema";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 
 const app = new Hono<{
@@ -25,23 +25,28 @@ function clampInt(
   return Math.min(Math.max(n, min), max);
 }
 
-// Get latest blocks
+// Get latest blocks. totalBlocks is bundled in so list consumers
+// (Explorer) don't need a separate /stats request per refresh.
 app.get("/blocks", async (c) => {
   const db = c.get("db");
   const limit = clampInt(c.req.query("limit"), 10, 1, 100);
   const offset = clampInt(c.req.query("offset"), 0, 0, 1_000_000);
 
   try {
-    const result = await db
-      .select()
-      .from(blocks)
-      .orderBy(desc(blocks.height))
-      .limit(limit)
-      .offset(offset);
+    const [result, totals] = await Promise.all([
+      db
+        .select()
+        .from(blocks)
+        .orderBy(desc(blocks.height))
+        .limit(limit)
+        .offset(offset),
+      db.select({ count: sql<number>`count(*)` }).from(blocks),
+    ]);
 
     return c.json({
       blocks: result,
       count: result.length,
+      totalBlocks: totals[0]?.count ?? 0,
       limit,
       offset,
     });
@@ -148,39 +153,27 @@ app.get("/blocks/:hash", async (c) => {
   }
 });
 
-// Get chain statistics
+// Get chain statistics. (chain_state is intentionally not queried: the
+// table is stale in production — not even the bot maintains it — and no
+// frontend consumer reads it.)
 app.get("/stats", async (c) => {
   const db = c.get("db");
 
   try {
-    const totalBlocks = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(blocks);
-
-    const maxHeight = await db
-      .select({ max: sql<number>`max(${blocks.height})` })
-      .from(blocks);
-
-    const recentBlocks = await db
-      .select()
-      .from(blocks)
-      .orderBy(desc(blocks.height))
-      .limit(5);
-
-    // Get chain state if available
-    let state = null;
-    try {
-      const stateResult = await db.select().from(chainState).limit(1);
-      state = stateResult[0] || null;
-    } catch (_) {
-      // chain_state table may not exist
-    }
+    const [totals, recentBlocks] = await Promise.all([
+      db
+        .select({
+          count: sql<number>`count(*)`,
+          maxHeight: sql<number>`coalesce(max(${blocks.height}), 0)`,
+        })
+        .from(blocks),
+      db.select().from(blocks).orderBy(desc(blocks.height)).limit(5),
+    ]);
 
     return c.json({
-      totalBlocks: totalBlocks[0]?.count || 0,
-      latestHeight: maxHeight[0]?.max || 0,
+      totalBlocks: totals[0]?.count ?? 0,
+      latestHeight: totals[0]?.maxHeight ?? 0,
       recentBlocks,
-      chainState: state,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
