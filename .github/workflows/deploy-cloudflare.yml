@@ -3,16 +3,11 @@ name: Deploy StarsLab Site to Cloudflare
 on:
   push:
     branches: [main]
-    paths:
-      - "www/**"
   workflow_dispatch:
 
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: www
     permissions:
       contents: read
       deployments: write
@@ -23,9 +18,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
-          cache-dependency-path: www/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install frontend deps
         run: npm ci --no-audit --no-fund
