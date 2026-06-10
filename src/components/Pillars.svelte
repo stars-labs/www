@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { navigateTo } from '../lib/router';
+  import { navigateTo, type Route } from '../lib/router';
 
   const pillars = [
     {
@@ -40,7 +40,7 @@
     if (pillar.external && pillar.link) {
       window.open(pillar.link, '_blank', 'noopener,noreferrer');
     } else if (pillar.link) {
-      navigateTo(pillar.link);
+      navigateTo(pillar.link as Route);
     }
   }
 </script>

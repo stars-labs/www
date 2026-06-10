@@ -27,7 +27,7 @@
         api.getTransactionStats().catch(() => ({ totalTransactions: 0, pendingCount: 0, confirmedCount: 0 })),
         api.getNetworkStats().catch(() => ({ network: { activeNodes: 0 } })),
         api.getMiningStats().catch(() => null),
-        api.getGlobalAnalytics(1).catch(() => ({ interactions: {}, mining: {} }))
+        api.getGlobalAnalytics(1).catch(() => null)
       ]);
 
       stats = {
