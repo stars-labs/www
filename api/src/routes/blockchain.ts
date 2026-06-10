@@ -2,12 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { desc, sql } from "drizzle-orm";
-import {
-  blocks,
-  chainState,
-  classroomBlocks,
-  type NewClassroomBlock,
-} from "../db/schema";
+import { blocks, chainState } from "../db/schema";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 
 const app = new Hono<{
@@ -42,93 +37,60 @@ app.get("/blocks", async (c) => {
   }
 });
 
-// Classroom chain: blocks mined by visitors on the homepage viz.
-// Batched uploads (one request carries many blocks) to stay within
-// Cloudflare free tier limits.
-const classroomSyncSchema = z.object({
-  sessionId: z.string().min(1).max(64),
+// Submit visitor-mined blocks to the shared chain. The server appends each
+// block at the current tip (next height, previousHash = tip hash) atomically,
+// so visitor blocks interleave safely with the mining bot's blocks.
+// Batched uploads keep request volume within the Cloudflare free tier.
+const submitBlocksSchema = z.object({
   blocks: z
     .array(
       z.object({
         hash: z.string().min(1).max(80),
-        previousHash: z.string().min(1).max(80),
-        height: z.number().int().min(0),
-        chainId: z.string().max(32).optional(),
+        minerAddress: z.string().min(1).max(80),
         transactionCount: z.number().int().min(0).max(10000).optional(),
-        minerAddress: z.string().max(80).optional(),
         difficulty: z.number().int().min(0).optional(),
         nonce: z.number().int().min(0).optional(),
       }),
     )
     .min(1)
-    .max(50),
+    .max(20),
 });
 
-app.post(
-  "/classroom/blocks",
-  zValidator("json", classroomSyncSchema),
-  async (c) => {
-    const db = c.get("db");
-    const { sessionId, blocks: incoming } = c.req.valid("json");
+const VISITOR_BLOCK_REWARD = "1000000000000000000"; // matches bot reward (1 token in wei)
 
-    try {
-      const now = Date.now();
-      const rows: NewClassroomBlock[] = incoming.map((b) => ({
-        hash: b.hash,
-        previousHash: b.previousHash,
-        height: b.height,
-        chainId: b.chainId || "classroom",
-        txCount: b.transactionCount ?? 0,
-        minerAddress: b.minerAddress,
-        sessionId,
-        difficulty: b.difficulty,
-        nonce: b.nonce,
-        createdAt: now,
-      }));
-
-      await db.insert(classroomBlocks).values(rows);
-
-      return c.json({ inserted: rows.length }, 201);
-    } catch (error) {
-      console.error("Error syncing classroom blocks:", error);
-      return c.json({ error: "Failed to sync classroom blocks" }, 500);
-    }
-  },
-);
-
-// List classroom blocks; stats are bundled in to keep request count low
-app.get("/classroom/blocks", async (c) => {
+app.post("/blocks", zValidator("json", submitBlocksSchema), async (c) => {
   const db = c.get("db");
-  const limit = Math.min(Number(c.req.query("limit")) || 20, 100);
-  const offset = Number(c.req.query("offset")) || 0;
+  const { blocks: incoming } = c.req.valid("json");
 
   try {
-    const result = await db
-      .select()
-      .from(classroomBlocks)
-      .orderBy(desc(classroomBlocks.id))
-      .limit(limit)
-      .offset(offset);
+    const now = Date.now();
+    let inserted = 0;
 
-    const totals = await db
-      .select({
-        count: sql<number>`count(*)`,
-        maxHeight: sql<number>`coalesce(max(${classroomBlocks.height}), 0)`,
-        miners: sql<number>`count(distinct ${classroomBlocks.sessionId})`,
-      })
-      .from(classroomBlocks);
+    for (const b of incoming) {
+      // Atomic append-at-tip: height and previous_hash are resolved inside
+      // the INSERT so concurrent miners (visitors or the bot) never collide.
+      await db.run(sql`
+        INSERT INTO blocks (height, hash, previous_hash, timestamp, difficulty, nonce, miner_address, reward, tx_count, created_at)
+        SELECT
+          m.h + 1,
+          ${b.hash},
+          COALESCE((SELECT bb.hash FROM blocks bb WHERE bb.height = m.h), '0x00000000'),
+          ${now},
+          ${b.difficulty ?? 1},
+          ${String(b.nonce ?? 0)},
+          ${b.minerAddress},
+          ${VISITOR_BLOCK_REWARD},
+          ${b.transactionCount ?? 0},
+          ${now}
+        FROM (SELECT COALESCE(MAX(height), 0) AS h FROM blocks) m
+      `);
+      inserted++;
+    }
 
-    return c.json({
-      blocks: result,
-      totalBlocks: totals[0]?.count ?? 0,
-      latestHeight: totals[0]?.maxHeight ?? 0,
-      uniqueMiners: totals[0]?.miners ?? 0,
-      limit,
-      offset,
-    });
+    return c.json({ inserted }, 201);
   } catch (error) {
-    console.error("Error fetching classroom blocks:", error);
-    return c.json({ error: "Failed to fetch classroom blocks" }, 500);
+    console.error("Error submitting blocks:", error);
+    return c.json({ error: "Failed to submit blocks" }, 500);
   }
 });
 

@@ -81,23 +81,6 @@ export const botConfig = sqliteTable("bot_config", {
     .default(sql`CURRENT_TIMESTAMP`),
 });
 
-// Classroom blocks — blocks mined by visitors on the homepage viz.
-// Kept separate from `blocks` (the real chain maintained by the mining bot)
-// so student activity can never corrupt bot data.
-export const classroomBlocks = sqliteTable("classroom_blocks", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  hash: text("hash").notNull(),
-  previousHash: text("previous_hash").notNull(),
-  height: integer("height").notNull(),
-  chainId: text("chain_id").notNull().default("classroom"),
-  txCount: integer("tx_count").notNull().default(0),
-  minerAddress: text("miner_address"),
-  sessionId: text("session_id"),
-  difficulty: integer("difficulty"),
-  nonce: integer("nonce"),
-  createdAt: integer("created_at").notNull(),
-});
-
 // Chain state table
 export const chainState = sqliteTable("chain_state", {
   id: integer("id").primaryKey(),
@@ -117,5 +100,3 @@ export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
 export type Wallet = typeof wallets.$inferSelect;
 export type ChainState = typeof chainState.$inferSelect;
-export type ClassroomBlock = typeof classroomBlocks.$inferSelect;
-export type NewClassroomBlock = typeof classroomBlocks.$inferInsert;

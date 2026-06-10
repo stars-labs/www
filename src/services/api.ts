@@ -34,20 +34,6 @@ export interface Block {
   createdAt: number;
 }
 
-export interface ClassroomBlock {
-  id: number;
-  hash: string;
-  previousHash: string;
-  height: number;
-  chainId: string;
-  txCount: number;
-  minerAddress?: string;
-  sessionId?: string;
-  difficulty?: number;
-  nonce?: number;
-  createdAt: number;
-}
-
 export interface ChainState {
   id: number;
   latestHeight: number;
@@ -151,41 +137,27 @@ class APIService {
     }>("/blockchain/stats");
   }
 
-  // Classroom chain endpoints (student-mined blocks from the homepage viz)
-  async syncClassroomBlocks(
+  // Submit visitor-mined blocks to the shared chain. The server assigns the
+  // real height and links each block to the current tip.
+  async submitMinedBlocks(
     blocks: Array<{
       hash: string;
-      previousHash: string;
-      height: number;
-      chainId?: string;
+      minerAddress: string;
       transactionCount?: number;
-      minerAddress?: string;
       difficulty?: number;
       nonce?: number;
     }>,
   ) {
-    return this.request<{ inserted: number }>("/blockchain/classroom/blocks", {
+    return this.request<{ inserted: number }>("/blockchain/blocks", {
       method: "POST",
-      body: JSON.stringify({ sessionId: this.sessionId, blocks }),
+      body: JSON.stringify({ blocks }),
     });
   }
 
-  async getClassroomBlocks(limit = 20, offset = 0) {
-    const params = new URLSearchParams({
-      limit: limit.toString(),
-      offset: offset.toString(),
-    });
-
-    return this.request<{
-      blocks: ClassroomBlock[];
-      totalBlocks: number;
-      latestHeight: number;
-      uniqueMiners: number;
-    }>(`/blockchain/classroom/blocks?${params}`);
-  }
-
-  getMySessionId(): string {
-    return this.sessionId;
+  // Stable per-session miner address so visitors can spot their own blocks
+  getMyMinerAddress(): string {
+    const tail = this.sessionId.replace(/[^a-z0-9]/gi, "").slice(-10);
+    return `0xstu${tail}`;
   }
 
   // Transaction endpoints

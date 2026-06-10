@@ -49,7 +49,11 @@ There are no automated tests in either package.
 
 ### Database
 
-`api/src/db/schema.ts` is written to match the **actual tables in the remote D1 database** (blocks, transactions, wallets, mempool, chain_state, etc.) — it was reverse-engineered from production, not driven by the migrations in `api/drizzle/`. Inspect with `npm run db:studio` or `wrangler d1 execute`. Do not regenerate/apply migrations against the remote DB without checking the real schema first. The analytics/nodes route files exist but are not mounted (their tables don't exist in the production DB).
+`api/src/db/schema.ts` is written to match the **actual tables in the remote D1 database** (blocks, transactions, wallets, mempool, chain_state, etc.) — it was reverse-engineered from production, not driven by the migrations in `api/drizzle/`. Inspect with `npm run db:studio` or `wrangler d1 execute`. Do not regenerate/apply migrations against the remote DB without checking the real schema first.
+
+The `blocks` chain is **shared**: a mining bot (external to this repo) appends real blocks, and visitor-mined blocks from the homepage viz are submitted via `POST /api/blockchain/blocks`, which atomically appends them at the current tip (server assigns height and previous_hash via `INSERT ... SELECT MAX(height)+1`). Visitor miner addresses are session-derived (`0xstu…`, see `api.getMyMinerAddress()`) so the Explorer can highlight "You".
+
+If you run `wrangler dev` locally, the local D1 `blocks` table created by old migrations does NOT match production — recreate it from the production DDL (`wrangler d1 execute starslab-db --remote --command "SELECT sql FROM sqlite_master WHERE name='blocks'"`) before testing.
 
 ### Constraints
 

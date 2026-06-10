@@ -10,8 +10,9 @@
   // Throttle API sync to stay within Cloudflare free tier (100K req/day)
   let lastApiSync = 0;
   const API_SYNC_INTERVAL = 10000; // Sync at most every 10 seconds
-  const MAX_PENDING_BLOCKS = 50;
-  let pendingBlockSyncs: Array<{hash: string, previousHash: string, height: number, chainId: string, transactionCount: number, minerAddress: string, difficulty: number, nonce: number}> = [];
+  const MAX_PENDING_BLOCKS = 20;
+  const myMinerAddress = api.getMyMinerAddress();
+  let pendingBlockSyncs: Array<{hash: string, minerAddress: string, transactionCount: number, difficulty: number, nonce: number}> = [];
   let pendingClickCount = 0;
   let pendingMiningStats: {speedMultiplier: number, blocksMinedCount?: number, totalClicks?: number, averageMiningTime?: number, peakSpeedMultiplier?: number} | null = null;
 
@@ -38,8 +39,8 @@
   }
 
   async function flushApiSync() {
-    // Mined blocks are uploaded in batches to the classroom chain so they
-    // show up in the Explorer. Mining stats / clicks stay local (no tables).
+    // Mined blocks are uploaded in batches and appended to the shared chain
+    // by the server. Mining stats / clicks stay local (no tables).
     pendingMiningStats = null;
     pendingClickCount = 0;
 
@@ -50,10 +51,10 @@
 
     const batch = pendingBlockSyncs.splice(0, MAX_PENDING_BLOCKS);
     try {
-      await api.syncClassroomBlocks(batch);
+      await api.submitMinedBlocks(batch);
     } catch (err) {
       // Drop the batch on failure — visual sim keeps running regardless
-      console.warn('Classroom block sync failed:', err);
+      console.warn('Block submission failed:', err);
     }
   }
 
@@ -465,15 +466,14 @@
       
       miningChain.blocks.push(newBlock);
       
-      // Queue block for batched API sync (throttled to reduce QPS)
+      // Queue block for batched API sync (throttled to reduce QPS).
+      // The server assigns the real chain height; minerAddress is stable
+      // per session so visitors can find their own blocks in the Explorer.
       if (apiSyncEnabled) {
         pendingBlockSyncs.push({
           hash: newBlock.hash,
-          previousHash: newBlock.prevHash,
-          height: newBlock.height,
-          chainId: `chain-${miningChain.id}`,
+          minerAddress: myMinerAddress,
           transactionCount: newBlock.transactions,
-          minerAddress: `0x${this.generateHash().substring(0, 40)}`,
           difficulty: Math.floor(Math.random() * 100) + 1,
           nonce: Math.floor(Math.random() * 1000000)
         });
