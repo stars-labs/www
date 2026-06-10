@@ -45,36 +45,6 @@ export interface ChainState {
   updatedAt: number;
 }
 
-export interface MiningStats {
-  sessionId: string;
-  speedMultiplier: number;
-  blocksMinedCount?: number;
-  totalClicks?: number;
-  averageMiningTime?: number;
-  peakSpeedMultiplier?: number;
-  timestamp?: Date;
-}
-
-export interface Interaction {
-  id: number;
-  sessionId: string;
-  type: "click" | "transaction" | "mining_boost";
-  data?: string;
-  positionX?: number;
-  positionY?: number;
-  timestamp: Date;
-}
-
-export interface NetworkNode {
-  id: number;
-  nodeId: string;
-  type: "validator" | "miner" | "peer" | "smart-contract";
-  address: string;
-  isActive: boolean;
-  consensusParticipation: number;
-  lastSeen: Date;
-}
-
 class APIService {
   private sessionId: string;
 
@@ -195,75 +165,6 @@ class APIService {
       recentTransactions: Transaction[];
       timestamp: string;
     }>("/transactions/stats/summary");
-  }
-
-  // Analytics endpoints (stub — tables don't exist in DB yet)
-  async recordInteraction(_interaction: {
-    type: "click" | "transaction" | "mining_boost";
-    data?: string;
-    positionX?: number;
-    positionY?: number;
-  }) {
-    // No-op: analytics tables not in DB
-    return null;
-  }
-
-  async updateMiningStats(_stats: {
-    speedMultiplier: number;
-    blocksMinedCount?: number;
-    totalClicks?: number;
-    averageMiningTime?: number;
-    peakSpeedMultiplier?: number;
-  }) {
-    // No-op: mining_stats table not in DB
-    return null;
-  }
-
-  async getMiningStats(): Promise<MiningStats | null> {
-    return null;
-  }
-
-  async getGlobalAnalytics(_hoursAgo = 24) {
-    return {
-      timeRange: { hours: _hoursAgo, from: "", to: "" },
-      interactions: {
-        totalInteractions: 0,
-        uniqueSessions: 0,
-        clickCount: 0,
-        transactionCount: 0,
-        miningBoostCount: 0,
-      },
-      mining: {
-        avgSpeedMultiplier: 0,
-        maxSpeedMultiplier: 0,
-        totalBlocksMined: 0,
-        totalClicks: 0,
-        avgMiningTime: 0,
-        activeSessions: 0,
-      },
-      activityByHour: [],
-    };
-  }
-
-  async getClickHeatmap(_hoursAgo = 1) {
-    return { heatmap: [], timeRange: { hours: _hoursAgo, from: "", to: "" } };
-  }
-
-  // Node endpoints (stub — nodes table not in DB)
-  async getNetworkStats() {
-    return {
-      network: {
-        totalNodes: 0,
-        activeNodes: 0,
-        validators: 0,
-        miners: 0,
-        peers: 0,
-        smartContracts: 0,
-        totalConsensusParticipation: 0,
-      },
-      topValidators: [],
-      timestamp: new Date().toISOString(),
-    };
   }
 }
 

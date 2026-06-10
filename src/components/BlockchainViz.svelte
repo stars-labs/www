@@ -5,7 +5,6 @@
   let canvas: HTMLCanvasElement;
   let animationId: number;
   let time = 0;
-  let apiSyncEnabled = true;
 
   // Throttle API sync to stay within Cloudflare free tier (100K req/day)
   let lastApiSync = 0;
@@ -13,37 +12,10 @@
   const MAX_PENDING_BLOCKS = 20;
   const myMinerAddress = api.getMyMinerAddress();
   let pendingBlockSyncs: Array<{hash: string, minerAddress: string, transactionCount: number, difficulty: number, nonce: number}> = [];
-  let pendingClickCount = 0;
-  let pendingMiningStats: {speedMultiplier: number, blocksMinedCount?: number, totalClicks?: number, averageMiningTime?: number, peakSpeedMultiplier?: number} | null = null;
-
-  function mergeMiningStats(update: typeof pendingMiningStats) {
-    if (!update) return;
-    if (!pendingMiningStats) {
-      pendingMiningStats = update;
-      return;
-    }
-    // Keep highest values when merging
-    pendingMiningStats.speedMultiplier = Math.max(pendingMiningStats.speedMultiplier, update.speedMultiplier);
-    if (update.blocksMinedCount !== undefined) {
-      pendingMiningStats.blocksMinedCount = Math.max(pendingMiningStats.blocksMinedCount || 0, update.blocksMinedCount);
-    }
-    if (update.totalClicks !== undefined) {
-      pendingMiningStats.totalClicks = (pendingMiningStats.totalClicks || 0) + (update.totalClicks || 0);
-    }
-    if (update.averageMiningTime !== undefined) {
-      pendingMiningStats.averageMiningTime = update.averageMiningTime;
-    }
-    if (update.peakSpeedMultiplier !== undefined) {
-      pendingMiningStats.peakSpeedMultiplier = Math.max(pendingMiningStats.peakSpeedMultiplier || 1, update.peakSpeedMultiplier);
-    }
-  }
 
   async function flushApiSync(force = false) {
     // Mined blocks are uploaded in batches and appended to the shared chain
-    // by the server. Mining stats / clicks stay local (no tables).
-    pendingMiningStats = null;
-    pendingClickCount = 0;
-
+    // by the server.
     const now = Date.now();
     if (!force && now - lastApiSync < API_SYNC_INTERVAL) return;
     if (pendingBlockSyncs.length === 0) return;
@@ -315,18 +287,9 @@
       
       this.userTransactions.push(userNode);
       
-      // Queue for batched API sync (throttled to reduce QPS)
-      if (apiSyncEnabled) {
-        pendingClickCount++;
-        const validSpeedMultiplier = Math.max(Number(this.miningSpeedMultiplier) || 1, 1);
-        mergeMiningStats({
-          speedMultiplier: validSpeedMultiplier,
-          totalClicks: Math.max(Number(this.clicksInLastPeriod) || 0, 0),
-          peakSpeedMultiplier: Math.max(validSpeedMultiplier, 1)
-        });
-        flushApiSync();
-      }
-      
+      // Opportunistic flush of any queued mined blocks (throttled)
+      flushApiSync();
+
       // Add to mempool with special visual
       const mempoolTx: MempoolTx = {
         x,
@@ -469,22 +432,14 @@
       // Queue block for batched API sync (throttled to reduce QPS).
       // The server assigns the real chain height; minerAddress is stable
       // per session so visitors can find their own blocks in the Explorer.
-      if (apiSyncEnabled) {
-        pendingBlockSyncs.push({
-          hash: newBlock.hash,
-          minerAddress: myMinerAddress,
-          transactionCount: newBlock.transactions,
-          difficulty: Math.floor(Math.random() * 100) + 1,
-          nonce: Math.floor(Math.random() * 1000000)
-        });
-        const validSpeedMultiplier = Math.max(Number(this.miningSpeedMultiplier) || 1, 1);
-        mergeMiningStats({
-          speedMultiplier: validSpeedMultiplier,
-          blocksMinedCount: Math.max(this.chains.reduce((acc, chain) => acc + chain.blocks.length, 0) || 0, 0),
-          averageMiningTime: Math.max(Number(this.currentMiningTime) || 5000, 1)
-        });
-        flushApiSync();
-      }
+      pendingBlockSyncs.push({
+        hash: newBlock.hash,
+        minerAddress: myMinerAddress,
+        transactionCount: newBlock.transactions,
+        difficulty: Math.floor(Math.random() * 100) + 1,
+        nonce: Math.floor(Math.random() * 1000000)
+      });
+      flushApiSync();
       
       // Include user transactions with priority
       const userTxs = this.mempool.filter(tx => tx.userCreated);
