@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { api } from '../services/api';
   import type { Block, Transaction } from '../services/api';
+  import { formatHash, formatTime, formatValue } from '../lib/format';
 
   let activeTab: 'blocks' | 'transactions' = 'blocks';
   let searchQuery = '';
@@ -99,37 +100,6 @@
     } catch (err) {
       console.error('Failed to load more transactions', err);
     }
-  }
-
-  function formatHash(hash: string): string {
-    if (!hash) return '';
-    return hash.length > 16 ? `${hash.slice(0, 8)}...${hash.slice(-6)}` : hash;
-  }
-
-  function formatTime(timestamp: number | null): string {
-    if (!timestamp) return 'Pending';
-
-    const date = new Date(timestamp);
-    if (isNaN(date.getTime())) return 'Pending';
-
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-
-    if (diff < 0) return date.toLocaleString();
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
-    return date.toLocaleDateString();
-  }
-
-  function formatValue(value: string): string {
-    // Value is in wei (string), convert to readable format
-    const num = parseFloat(value);
-    if (isNaN(num)) return value;
-    if (num >= 1e18) return (num / 1e18).toFixed(4) + ' ETH';
-    if (num >= 1e9) return (num / 1e9).toFixed(2) + ' Gwei';
-    return num.toLocaleString();
   }
 
   function getStatusColor(status: string): string {

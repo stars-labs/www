@@ -403,9 +403,11 @@
       const prevBlock = chainBlocks[chainBlocks.length - 1];
       const blockHeight = chainBlocks.length;
       
-      // Position blocks in a grid pattern with wrap-around
+      // Position blocks in a grid pattern with wrap-around.
+      // Clamp to ≥1 row: on very short viewports (<260px) the modulo
+      // below would otherwise divide by zero and produce NaN coordinates.
       const blocksPerRow = 12;
-      const maxRows = Math.floor((this.height - 200) / 60); // Available rows on screen
+      const maxRows = Math.max(1, Math.floor((this.height - 200) / 60));
       const blockX = 100 + (blockHeight % blocksPerRow) * 70;
       // Use modulo to wrap around when reaching max rows
       const effectiveRow = Math.floor(blockHeight / blocksPerRow) % maxRows;

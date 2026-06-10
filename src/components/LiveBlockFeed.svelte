@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { api } from '../services/api';
   import { navigateTo } from '../lib/router';
+  import { formatHash as formatHashShared } from '../lib/format';
 
   import type { Block } from '../services/api';
 
@@ -17,8 +18,9 @@
     }
   }
 
+  // Compact variant for the narrow ticker strip
   function formatHash(hash: string): string {
-    return hash.length > 12 ? `${hash.slice(0, 6)}…${hash.slice(-4)}` : hash;
+    return formatHashShared(hash, 6, 4);
   }
 
   function goToExplorer() {
