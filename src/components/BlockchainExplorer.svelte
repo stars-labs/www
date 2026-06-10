@@ -37,10 +37,10 @@
       blocks = blockData.blocks;
       transactions = txStats.recentTransactions || [];
       stats = {
-        totalBlocks: statsData.totalBlocks,
-        totalTransactions: txStats.totalTransactions,
-        pendingTxs: txStats.pendingCount,
-        latestHeight: statsData.latestHeight
+        totalBlocks: statsData.totalBlocks ?? 0,
+        totalTransactions: txStats.totalTransactions ?? 0,
+        pendingTxs: txStats.pendingCount ?? 0,
+        latestHeight: statsData.latestHeight ?? 0
       };
     } catch (err) {
       error = 'Failed to load blockchain data';

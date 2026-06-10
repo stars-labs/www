@@ -521,7 +521,7 @@
   bind:this={canvas}
   class="fixed inset-0 w-full h-full"
   style="z-index: 1; pointer-events: auto;"
-/>
+></canvas>
 
 <style>
   canvas {

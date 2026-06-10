@@ -1231,4 +1231,4 @@
   bind:this={canvas}
   class="fixed inset-0 w-full h-full"
   style="z-index: 0; opacity: 0.7; pointer-events: auto;"
-/>
+></canvas>

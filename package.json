@@ -12,21 +12,20 @@
     "deploy:cf": "npm run build && wrangler pages deploy dist --project-name=starslab-site"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250823.0",
-    "@sveltejs/vite-plugin-svelte": "^3.0.3",
-    "@tsconfig/svelte": "^5.0.2",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.41",
-    "prettier": "^3.3.3",
-    "svelte": "^4.2.18",
-    "svelte-check": "^3.8.6",
-    "tailwindcss": "^3.4.10",
-    "typescript": "^5.5.4",
-    "vite": "^5.4.19",
-    "wrangler": "^4.0.0"
+    "@cloudflare/workers-types": "^4.20260316.1",
+    "@sveltejs/vite-plugin-svelte": "^7.0.0",
+    "@tailwindcss/vite": "^4.3.0",
+    "@tsconfig/svelte": "^5.0.8",
+    "prettier": "^3.8.1",
+    "svelte": "^5.53.12",
+    "svelte-check": "^4.4.5",
+    "tailwindcss": "^4.2.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0",
+    "wrangler": "^4.74.0"
   },
   "dependencies": {
-    "@cloudflare/kv-asset-handler": "^0.4.0"
+    "@cloudflare/kv-asset-handler": "^0.4.2"
   },
   "overrides": {
     "esbuild": "^0.25.0"

@@ -2,72 +2,61 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Overview
+
+StarsLab public site: a Svelte SPA (frontend, repo root) plus a Cloudflare Worker API (`api/`) that serves both the JSON API and the built SPA assets. The marketing page includes an interactive blockchain visualization/explorer backed by a D1 (SQLite) database — see `BLOCKCHAIN_ARCHITECTURE.md` for the full data model and mechanics.
+
 ## Development Commands
 
-### Frontend (from `www/` root)
+### Frontend (repo root)
 
 ```bash
-npm install          # Install frontend dependencies
-npm run dev          # Dev server at http://localhost:5173
-npm run build        # Production build → dist/
-npm run preview      # Preview production build
-npm run check        # Svelte + TypeScript type checking
-npm run format       # Prettier formatting
-npm run deploy:cf    # Deploy to Cloudflare Pages
+npm install
+npm run dev        # Vite dev server at http://localhost:5173
+npm run build      # Production build to dist/
+npm run check      # svelte-check (TypeScript + Svelte type checking)
+npm run format     # Prettier
+npm run deploy:cf  # Manual deploy to Cloudflare Pages (legacy path)
 ```
 
-### API Backend (from `api/`)
+### API (`api/` — separate package, run `npm install` there first)
 
 ```bash
-npm install          # Install API dependencies
-npm run dev          # Wrangler dev server at http://localhost:43251
-npm run deploy       # Deploy Cloudflare Worker
-npm run db:generate  # Generate Drizzle migrations
-npm run db:migrate   # Apply D1 migrations locally
-npm run db:studio    # Open Drizzle Studio for DB inspection
+cd api
+npm run dev          # wrangler dev src/site-worker.ts (frontend dev expects port 43251)
+npm run typecheck    # tsc --noEmit
+npm run db:studio    # Drizzle Studio for DB inspection
+npm run deploy       # wrangler deploy --minify src/site-worker.ts
 ```
 
-## Architecture Overview
+There are no automated tests in either package.
 
-Two-part application: a **Svelte 4 SPA frontend** and a **Hono API backend** running on Cloudflare Workers with D1 (SQLite).
+## Architecture
 
-### Frontend (`src/`)
+### Two packages, one deployment
 
-- **Svelte 4** + TypeScript + Vite + TailwindCSS
-- **Client-side routing** via `src/lib/router.ts` using Svelte stores and History API. Two routes: `home` (`/`) and `explorer` (`/explorer`)
-- **Entry point**: `src/main.ts` → `App.svelte` which handles navigation and conditionally renders either the home page sections (Hero, Pillars, Showcase, CTA, Footer) or the BlockchainExplorer
-- **API client**: `src/services/api.ts` — singleton `APIService` class with session management (sessionStorage) and typed methods for all backend endpoints
-- **Brand colors**: Custom Tailwind theme in `tailwind.config.js` (brand-bg, brand-surface, brand-accent, brand-neon) — use consistently
+- **Frontend**: Svelte 5 (components written in Svelte 4 syntax, non-runes mode; `src/main.ts` uses the Svelte 5 `mount()` API) + TypeScript + Vite + TailwindCSS v4 (via the `@tailwindcss/vite` plugin — there is no `tailwind.config.js` or `postcss.config.js`). Builds to `dist/`.
+- **API**: Hono app on Cloudflare Workers with Drizzle ORM over a D1 database (`starslab-db`, binding `DB`).
+- **`api/src/site-worker.ts` is the deployed entry point**. It mounts the API under `/api/*` (blockchain, transactions, health) and serves the built SPA from `../dist` via `@cloudflare/kv-asset-handler`, with SPA fallback to `index.html`. Other files in `api/src/` (`worker.ts`, `index.ts`, `combined.ts`, `index-combined.ts`) are older/alternative entry points — don't edit them by mistake.
 
-### Key Frontend Components
+### Frontend structure
 
-- **BlockchainViz.svelte** (~1200 lines) — Canvas-based real-time blockchain visualization with mining simulation, chain forking logic, and user activity speed multiplier
-- **BlockchainExplorer.svelte** — Interactive explorer with tabs (Blocks, Transactions, Forks), real-time polling (5s), search, and pagination
-- **WebGPUParticles.svelte** — WebGPU/Canvas particle effects background layer
+- `src/main.ts` mounts `App.svelte`; `App.svelte` holds the nav (desktop + mobile hamburger) and switches pages.
+- **Routing**: minimal custom store-based router in `src/lib/router.ts` — a `currentRoute` writable store with two routes (`home`, `explorer`) and History API push/popstate handling. No router library; add new routes there.
+- **API access**: `src/services/api.ts` — singleton `APIService` with session management and typed methods. Base URL is `http://localhost:43251/api` in dev, relative `/api` in production (same-origin via the worker).
+- Key components: `BlockchainViz.svelte` (~1200-line canvas mining simulation with chain forks and click-to-boost), `BlockchainExplorer.svelte` (blocks/transactions tabs, polling, search), `LiveBlockFeed.svelte`, `TransactionPanel.svelte`, `BlockchainStats.svelte` (HUD), `WebGPUParticles.svelte`.
+- **Brand colors**: defined as Tailwind v4 `@theme` variables in `src/app.css` (`--color-brand-bg`, `-surface`, `-accent`, `-neon`, gradient stops → `bg-brand-accent` etc.); shared utility classes like `.gradient-text` and `.glow-border` also live there.
 
-### API Backend (`api/`)
+### Database
 
-- **Hono** web framework on Cloudflare Workers
-- **Drizzle ORM** with **Cloudflare D1** (SQLite) for persistence
-- **Zod** for request validation via `@hono/zod-validator`
-- **Dual entry points**: `api/src/site-worker.ts` (serves API + static assets in prod) and `api/src/index.ts` (standalone API for dev)
+`api/src/db/schema.ts` is written to match the **actual tables in the remote D1 database** (blocks, transactions, wallets, mempool, chain_state, etc.) — it was reverse-engineered from production, not driven by the migrations in `api/drizzle/`. Inspect with `npm run db:studio` or `wrangler d1 execute`. Do not regenerate/apply migrations against the remote DB without checking the real schema first. The analytics/nodes route files exist but are not mounted (their tables don't exist in the production DB).
 
-### API Routes (`api/src/routes/`)
+### Constraints
 
-| Prefix | Resource | Key endpoints |
-|--------|----------|---------------|
-| `/api/blockchain` | Blocks & forks | GET/POST blocks, GET stats, GET/POST forks, PUT resolve fork |
-| `/api/transactions` | Transactions | CRUD, GET mempool/pending, GET stats/summary |
-| `/api/analytics` | User analytics | POST interactions, mining stats, GET global analytics, GET heatmap |
-| `/api/nodes` | Network nodes | CRUD, POST heartbeat, GET network stats, POST deactivate-inactive |
-
-### Database Schema (`api/src/db/schema.ts`)
-
-7 tables: `blocks`, `transactions`, `interactions`, `miningStats`, `nodes`, `chainForks` — all with auto-increment IDs and timestamps. See schema file for column details.
+- The Cloudflare account is on the **free tier** — API call volume from the frontend is deliberately throttled (see `BlockchainViz.svelte` sync logic and 30s polling intervals); keep polling conservative when touching BlockchainViz/Explorer/Stats.
 
 ## Deployment
 
-- **CI/CD**: `.github/workflows/deploy-cloudflare.yml` — triggers on push to `main` with changes in `www/`. Builds frontend, runs D1 migrations, deploys Worker.
-- **Cloudflare Account ID**: `5ccbd2ab14501cd236498638428d638d` (in wrangler.toml and GitHub Actions)
-- **D1 Database ID**: `774b90d0-2ce4-4d11-95b1-6b9c29028ad0`
-- Requires `CLOUDFLARE_API_TOKEN` secret in GitHub repo settings
+GitHub Actions (`.github/workflows/deploy-cloudflare.yml`) on pushes to `main`: builds the frontend, applies D1 migrations remotely, then deploys the worker (`starslab-app`, routed to `starslab.io/*` in production). Requires `CLOUDFLARE_API_TOKEN` secret; account ID `5ccbd2ab14501cd236498638428d638d`, D1 database ID `774b90d0-2ce4-4d11-95b1-6b9c29028ad0`. The root `wrangler.toml` (Pages) is the legacy deploy path; the worker config in `api/wrangler.toml` is authoritative.
+
+`secrets.yaml` is SOPS-encrypted (PGP, rules in `.sops.yaml`) — never commit it decrypted.

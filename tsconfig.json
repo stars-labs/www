@@ -7,7 +7,7 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["svelte"]
+    "types": ["svelte", "vite/client"]
   },
   "include": ["src/**/*", "src/**/*.d.ts"],
   "exclude": ["node_modules/*", "dist/*"]

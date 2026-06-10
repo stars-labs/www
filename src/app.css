@@ -1,6 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-brand-bg: #0f141e;
+  --color-brand-surface: #1a1a2e;
+  --color-brand-accent: #e94560;
+  --color-brand-neon: #00ffff;
+  --color-brand-gradientFrom: #e94560;
+  --color-brand-gradientTo: #00ffff;
+}
 
 :root {
   --color-accent: #e94560;

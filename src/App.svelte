@@ -11,7 +11,7 @@
   import BlockchainExplorer from "./components/BlockchainExplorer.svelte";
   import LiveBlockFeed from "./components/LiveBlockFeed.svelte";
   import TransactionPanel from "./components/TransactionPanel.svelte";
-  import { currentRoute, navigateTo } from "./lib/router";
+  import { currentRoute, navigateTo, type Route } from "./lib/router";
   import faviconUrl from "/favicon.png";
 
   let mobileMenuOpen = false;
@@ -27,7 +27,7 @@
     mobileMenuOpen = false; // Close mobile menu after navigation
   }
 
-  function handleNavigate(route: string) {
+  function handleNavigate(route: Route) {
     navigateTo(route);
     mobileMenuOpen = false;
   }
