@@ -13,8 +13,8 @@
       icon: "📈",
       title: $t('branches.quant.title'),
       desc: $t('branches.quant.desc'),
-      link: "",
-      cta: "",
+      link: "https://quant.starslab.qzz.io",
+      cta: $t('branches.live'),
     },
     {
       icon: "💱",
