@@ -11,7 +11,9 @@
   import BlockchainExplorer from "./components/BlockchainExplorer.svelte";
   import LiveBlockFeed from "./components/LiveBlockFeed.svelte";
   import TransactionPanel from "./components/TransactionPanel.svelte";
+  import Branches from "./components/Branches.svelte";
   import { currentRoute, navigateTo, type Route } from "./lib/router";
+  import { locale, t } from "./lib/i18n";
   import faviconUrl from "/favicon.png";
 
   let mobileMenuOpen = false;
@@ -32,11 +34,16 @@
     mobileMenuOpen = false;
   }
 
-  const nav = [
-    { id: "pillars", label: "Pillars" },
-    { id: "projects", label: "Projects" },
+  $: nav = [
+    { id: "pillars", label: $t('pillars.title') },
+    { id: "branches", label: $t('branches.title') },
+    { id: "projects", label: $t('showcase.title') },
     { id: "contact", label: "Contact" },
   ];
+
+  function toggleLocale() {
+    locale.update(l => l === 'en' ? 'zh' : 'en');
+  }
 </script>
 
 {#if $currentRoute === 'home'}
@@ -63,7 +70,7 @@
     </button>
     
     <!-- Desktop Navigation -->
-    <ul class="hidden md:flex gap-8 text-sm">
+    <ul class="hidden md:flex gap-8 text-sm items-center">
       {#if $currentRoute === 'home'}
         {#each nav as n}
           <li>
@@ -80,7 +87,15 @@
           on:click={() => handleNavigate('explorer')}
           class="text-white/70 hover:text-brand-accent transition {$currentRoute === 'explorer' ? 'text-brand-accent' : ''}"
         >
-          Explorer
+          {$t('nav.explorer')}
+        </button>
+      </li>
+      <li>
+        <button
+          on:click={toggleLocale}
+          class="px-2 py-1 rounded text-white/70 hover:text-white bg-white/10 hover:bg-white/20 transition text-xs font-mono"
+        >
+          {$locale === 'en' ? '中' : 'EN'}
         </button>
       </li>
     </ul>
@@ -144,18 +159,24 @@
         >
           Explorer
         </button>
-        <div class="pt-3 border-t border-white/10">
+        <div class="pt-3 border-t border-white/10 flex items-center justify-between">
+          <button
+            on:click={toggleLocale}
+            class="px-3 py-1.5 rounded text-white/70 hover:text-white bg-white/10 hover:bg-white/20 transition text-sm font-mono"
+          >
+            {$locale === 'en' ? '中文' : 'English'}
+          </button>
           {#if $currentRoute === 'explorer'}
             <button
               on:click={() => handleNavigate('home')}
-              class="w-full px-4 py-2 rounded-md border border-brand-accent text-brand-accent text-sm font-medium hover:bg-brand-accent hover:text-black transition"
+              class="px-4 py-2 rounded-md border border-brand-accent text-brand-accent text-sm font-medium hover:bg-brand-accent hover:text-black transition"
             >
               Back to Home
             </button>
           {:else}
             <button
               on:click={() => scrollToId("contact")}
-              class="w-full px-4 py-2 rounded-md bg-brand-accent text-sm font-medium hover:brightness-110"
+              class="px-4 py-2 rounded-md bg-brand-accent text-sm font-medium hover:brightness-110"
             >
               Join
             </button>
@@ -186,6 +207,7 @@
 
   <main class="relative" style="z-index: 10;">
     <div id="pillars"><Pillars /></div>
+    <div id="branches"><Branches /></div>
     <div id="projects"><Showcase /></div>
     <CTA />
   </main>

@@ -1,23 +1,32 @@
 <script lang="ts">
-  const projects = [
+  import { t } from '../lib/i18n';
+
+  $: projects = [
     {
-      name: "MPC Wallet",
-      tag: "Threshold Crypto",
-      desc: "Multi-party FROST signing across browser, CLI, native nodes.",
+      name: $t('showcase.outcry.name'),
+      tag: $t('showcase.outcry.tag'),
+      desc: $t('showcase.outcry.desc'),
+      link: "https://github.com/stars-labs/pg-outcry",
+      ready: true,
+    },
+    {
+      name: $t('showcase.mpc.name'),
+      tag: $t('showcase.mpc.tag'),
+      desc: $t('showcase.mpc.desc'),
       link: "https://github.com/stars-labs/mpc-wallet",
       ready: true,
     },
     {
-      name: "Secure Signaling",
-      tag: "Networking",
-      desc: "Resilient WebRTC signaling with cryptographic session semantics.",
+      name: $t('showcase.signaling.name'),
+      tag: $t('showcase.signaling.tag'),
+      desc: $t('showcase.signaling.desc'),
       link: "",
       ready: false,
     },
     {
-      name: "Agent Control Stack",
-      tag: "AI + Robotics",
-      desc: "Layered autonomy pipeline for task planning + safe actuation.",
+      name: $t('showcase.agent.name'),
+      tag: $t('showcase.agent.tag'),
+      desc: $t('showcase.agent.desc'),
       link: "",
       ready: false,
     },
@@ -26,9 +35,9 @@
 
 <section class="section">
   <div class="flex items-end justify-between mb-10">
-    <h2 class="text-3xl md:text-5xl font-bold">Research & Builds</h2>
+    <h2 class="text-3xl md:text-5xl font-bold">{$t('showcase.title')}</h2>
     <a href="https://github.com/stars-labs" class="text-sm text-brand-accent hover:underline"
-      >All repositories &rarr;</a
+      >{$t('showcase.allRepo')} &rarr;</a
     >
   </div>
   <div class="grid md:grid-cols-3 gap-6">
@@ -47,7 +56,7 @@
           <p class="text-sm text-white/65 leading-relaxed flex-1">{pr.desc}</p>
           <span
             class="text-sm text-white/60 group-hover:text-brand-accent transition"
-            >View &rarr;</span
+            >{$t('showcase.view')} &rarr;</span
           >
           <div
             class="absolute inset-0 opacity-0 group-hover:opacity-100 transition pointer-events-none bg-[radial-gradient(circle_at_70%_30%,rgba(0,255,255,0.15),transparent_70%)]"
@@ -62,7 +71,7 @@
           </div>
           <h3 class="text-xl font-semibold">{pr.name}</h3>
           <p class="text-sm text-white/65 leading-relaxed flex-1">{pr.desc}</p>
-          <span class="text-sm text-white/40">Coming Soon</span>
+          <span class="text-sm text-white/40">{$t('showcase.comingSoon')}</span>
         </div>
       {/if}
     {/each}

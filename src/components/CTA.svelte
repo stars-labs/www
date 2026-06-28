@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
+  
   let name = '';
   let email = '';
   let message = '';
@@ -25,25 +27,23 @@
   >
     <div class="max-w-3xl space-y-6 relative z-10">
       <h2 class="text-3xl md:text-5xl font-bold leading-tight">
-        Collaborate With StarsLab
+        {$t('cta.title')}
       </h2>
       <p class="text-lg text-white/80">
-        Seeking partners in decentralized infra, embodied intelligence, and
-        real‑time autonomy. Let's co‑create standards for a convergent,
-        trustworthy future.
+        {$t('cta.desc')}
       </p>
 
       {#if submitted}
         <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-6 text-center">
-          <p class="text-green-400 font-semibold text-lg mb-2">Thanks, {name}!</p>
-          <p class="text-white/70">Your email client should have opened. If not, reach us directly at
+          <p class="text-green-400 font-semibold text-lg mb-2">{$t('cta.thanks')}, {name}!</p>
+          <p class="text-white/70">{$t('cta.opened')}
             <a href="mailto:contact@starslab.app" class="text-brand-accent hover:underline">contact@starslab.app</a>
           </p>
           <button
             on:click={() => { submitted = false; name = ''; email = ''; message = ''; }}
             class="mt-4 text-sm text-white/50 hover:text-white/80 transition"
           >
-            Send another
+            {$t('cta.another')}
           </button>
         </div>
       {:else}
@@ -54,14 +54,14 @@
           <input
             required
             bind:value={name}
-            placeholder="Name"
+            placeholder={$t('cta.name')}
             class="bg-black/30 border border-white/15 rounded-lg px-4 py-3 outline-none focus:border-brand-accent"
           />
           <input
             required
             type="email"
             bind:value={email}
-            placeholder="Email"
+            placeholder={$t('cta.email')}
             class="bg-black/30 border border-white/15 rounded-lg px-4 py-3 outline-none focus:border-brand-accent"
           />
           <button
@@ -69,12 +69,12 @@
             disabled={submitting}
             class="bg-brand-accent hover:brightness-110 rounded-lg font-medium px-6 py-3 transition disabled:opacity-50"
           >
-            {submitting ? 'Sending...' : 'Request Access'}
+            {submitting ? $t('cta.sending') : $t('cta.btn')}
           </button>
           <textarea
             bind:value={message}
             class="md:col-span-3 bg-black/30 border border-white/15 rounded-lg px-4 py-3 outline-none focus:border-brand-accent min-h-[120px]"
-            placeholder="Your focus / collaboration idea (optional)"
+            placeholder={$t('cta.message')}
           ></textarea>
         </form>
       {/if}

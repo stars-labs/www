@@ -1,0 +1,150 @@
+import { writable, derived } from 'svelte/store';
+
+export type Locale = 'en' | 'zh';
+
+export const locale = writable<Locale>('en');
+
+  const translations = {
+  en: {
+    'nav.home': 'Home',
+    'nav.explorer': 'Explorer',
+    'nav.github': 'GitHub',
+    
+    'hero.title1': 'Building the',
+    'hero.title2': 'Convergent Future',
+    'hero.tech': 'Blockchain • AI • Humanoid Systems',
+    'hero.desc': 'StarsLab is a deep R&D lab advancing decentralized cryptography, intelligent autonomy, and human-centric robotics—fusing trust, cognition, and embodiment.',
+    'hero.explore': 'Explore Pillars',
+    'hero.getInvolved': 'Get Involved',
+    
+    'hero.card1.title': 'Cryptographic Wallet Infra',
+    'hero.card1.desc': 'Threshold MPC, zero-knowledge, multi-chain security primitives.',
+    'hero.card2.title': 'Adaptive Intelligence',
+    'hero.card2.desc': 'Model distillation + on-device reasoning for autonomous agents.',
+    'hero.card3.title': 'Humanoid Integration',
+    'hero.card3.desc': 'Realtime intent fusion: perception, control, secure coordination.',
+
+    'pillars.title': 'Innovation Pillars',
+    'pillars.p1.title': 'Decentralized Security',
+    'pillars.p1.desc': 'Advanced MPC (e.g. FROST), verifiable compute, programmable trust rails.',
+    'pillars.p2.title': 'Bounded Intelligence',
+    'pillars.p2.desc': 'Safe agent architectures combining symbolic guardrails with neural adaptability.',
+    'pillars.p3.title': 'Humanoid Interfaces',
+    'pillars.p3.desc': 'Secure control channels + sensor fusion for embodied collaboration.',
+    'pillars.p4.title': 'Edge Coordination',
+    'pillars.p4.desc': 'Deterministic mesh protocols enabling low-latency multi-agent swarms.',
+    'pillars.comingSoon': 'Coming Soon',
+    'pillars.liveDemo': 'Live Demo',
+    'pillars.repo': 'MPC Wallet Repo',
+
+    'showcase.title': 'Research & Builds',
+    'showcase.allRepo': 'All repositories',
+    'showcase.view': 'View',
+    'showcase.comingSoon': 'Coming Soon',
+    'showcase.outcry.tag': 'Exchange Infra',
+    'showcase.outcry.name': 'pg-outcry · OUTCRY',
+    'showcase.outcry.desc': 'A complete CEX inside PostgreSQL — matching, settlement, wallets, risk & realtime. Launch your own exchange with no app server in the request path.',
+    'showcase.mpc.tag': 'Threshold Crypto',
+    'showcase.mpc.name': 'MPC Wallet',
+    'showcase.mpc.desc': 'Multi-party FROST signing across browser, CLI, native nodes.',
+    'showcase.signaling.tag': 'Networking',
+    'showcase.signaling.name': 'Secure Signaling',
+    'showcase.signaling.desc': 'Resilient WebRTC signaling with cryptographic session semantics.',
+    'showcase.agent.tag': 'AI + Robotics',
+    'showcase.agent.name': 'Agent Control Stack',
+    'showcase.agent.desc': 'Layered autonomy pipeline for task planning + safe actuation.',
+
+    'branches.title': 'Business Branches',
+    'branches.live': 'Live Demo',
+    'branches.games.title': 'Games',
+    'branches.games.desc': 'Next-generation Web3 gaming and decentralized entertainment.',
+    'branches.quant.title': 'Quantitative Trading',
+    'branches.quant.desc': 'Algorithmic trading strategies, high-frequency trading infrastructure.',
+    'branches.exchange.title': 'Crypto Exchange',
+    'branches.exchange.desc': 'Launch your own CEX — a complete exchange running entirely inside PostgreSQL: matching, settlement, wallets & risk, no app server. Built so a small business can run a full exchange, powered by pg-outcry.',
+
+    'cta.title': 'Collaborate With StarsLab',
+    'cta.desc': 'Seeking partners in decentralized infra, embodied intelligence, and real-time autonomy. Let\'s co-create standards for a convergent, trustworthy future.',
+    'cta.btn': 'Request Access',
+    'cta.sending': 'Sending...',
+    'cta.name': 'Name',
+    'cta.email': 'Email',
+    'cta.message': 'Your focus / collaboration idea (optional)',
+    'cta.thanks': 'Thanks',
+    'cta.opened': 'Your email client should have opened. If not, reach us directly at',
+    'cta.another': 'Send another'
+  },
+  zh: {
+    'nav.home': '首页',
+    'nav.explorer': '浏览器',
+    'nav.github': 'GitHub',
+    
+    'hero.title1': '构建',
+    'hero.title2': '融合的未来',
+    'hero.tech': '区块链 • 人工智能 • 人形系统',
+    'hero.desc': 'StarsLab 是一家深度研发实验室，致力于推进去中心化密码学、智能自主性和以人为本的机器人技术——融合信任、认知和具身智能。',
+    'hero.explore': '探索支柱',
+    'hero.getInvolved': '参与其中',
+    
+    'hero.card1.title': '密码学钱包基础设施',
+    'hero.card1.desc': '门限 MPC、零知识证明、多链安全原语。',
+    'hero.card2.title': '适应性智能',
+    'hero.card2.desc': '模型蒸馏 + 自主智能体的端侧推理。',
+    'hero.card3.title': '人形机器人集成',
+    'hero.card3.desc': '实时意图融合：感知、控制、安全协作。',
+
+    'pillars.title': '创新支柱',
+    'pillars.p1.title': '去中心化安全',
+    'pillars.p1.desc': '高级 MPC（如 FROST）、可验证计算、可编程信任网络。',
+    'pillars.p2.title': '有界智能',
+    'pillars.p2.desc': '结合符号护栏与神经适应性的安全智能体架构。',
+    'pillars.p3.title': '人形接口',
+    'pillars.p3.desc': '用于具身协作的安全控制通道 + 传感器融合。',
+    'pillars.p4.title': '边缘协调',
+    'pillars.p4.desc': '实现低延迟多智能体集群的确定性网状协议。',
+    'pillars.comingSoon': '敬请期待',
+    'pillars.liveDemo': '在线演示',
+    'pillars.repo': 'MPC 钱包仓库',
+
+    'showcase.title': '研究与构建',
+    'showcase.allRepo': '所有仓库',
+    'showcase.view': '查看',
+    'showcase.comingSoon': '敬请期待',
+    'showcase.outcry.tag': '交易所基础设施',
+    'showcase.outcry.name': 'pg-outcry · OUTCRY',
+    'showcase.outcry.desc': '完全运行于 PostgreSQL 之中的完整中心化交易所——撮合、结算、钱包、风控与实时推送。开设你自己的交易所，请求路径上无需任何应用服务器。',
+    'showcase.mpc.tag': '门限密码学',
+    'showcase.mpc.name': 'MPC 钱包',
+    'showcase.mpc.desc': '跨浏览器、CLI 与原生节点的多方 FROST 签名。',
+    'showcase.signaling.tag': '网络',
+    'showcase.signaling.name': '安全信令',
+    'showcase.signaling.desc': '具备密码学会话语义的弹性 WebRTC 信令。',
+    'showcase.agent.tag': 'AI + 机器人',
+    'showcase.agent.name': '智能体控制栈',
+    'showcase.agent.desc': '面向任务规划与安全执行的分层自主管线。',
+
+    'branches.title': '业务分支',
+    'branches.live': '在线演示',
+    'branches.games.title': '游戏',
+    'branches.games.desc': '下一代 Web3 游戏和去中心化娱乐。',
+    'branches.quant.title': '量化交易',
+    'branches.quant.desc': '算法交易策略，高频交易基础设施。',
+    'branches.exchange.title': '虚拟货币交易所',
+    'branches.exchange.desc': '开设你自己的中心化交易所——完整交易所完全运行于 PostgreSQL 之中：撮合、结算、钱包与风控，无需应用服务器。为小型企业打造，由 pg-outcry 驱动。',
+
+    'cta.title': '与 StarsLab 合作',
+    'cta.desc': '寻找去中心化基础设施、具身智能和实时自主性方面的合作伙伴。让我们共同为可信赖的融合未来制定标准。',
+    'cta.btn': '申请访问',
+    'cta.sending': '发送中...',
+    'cta.name': '姓名',
+    'cta.email': '邮箱',
+    'cta.message': '您的关注点/合作想法（可选）',
+    'cta.thanks': '谢谢',
+    'cta.opened': '您的邮件客户端应该已打开。如果没有，请直接联系我们',
+    'cta.another': '再发一封'
+  }
+};
+
+export const t = derived(locale, ($locale) => (key: string) => {
+  return translations[$locale][key as keyof typeof translations['en']] || key;
+});

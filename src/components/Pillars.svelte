@@ -1,37 +1,38 @@
 <script lang="ts">
   import { navigateTo, type Route } from '../lib/router';
+  import { t } from '../lib/i18n';
 
-  const pillars = [
+  $: pillars = [
     {
       icon: "🛡️",
-      title: "Decentralized Security",
-      desc: "Advanced MPC (e.g. FROST), verifiable compute, programmable trust rails.",
+      title: $t('pillars.p1.title'),
+      desc: $t('pillars.p1.desc'),
       link: "https://github.com/stars-labs/mpc-wallet",
-      linkLabel: "MPC Wallet Repo",
+      linkLabel: $t('pillars.repo'),
       external: true,
     },
     {
       icon: "🧠",
-      title: "Bounded Intelligence",
-      desc: "Safe agent architectures combining symbolic guardrails with neural adaptability.",
+      title: $t('pillars.p2.title'),
+      desc: $t('pillars.p2.desc'),
       link: "",
-      linkLabel: "Coming Soon",
+      linkLabel: $t('pillars.comingSoon'),
       external: false,
     },
     {
       icon: "🤖",
-      title: "Humanoid Interfaces",
-      desc: "Secure control channels + sensor fusion for embodied collaboration.",
+      title: $t('pillars.p3.title'),
+      desc: $t('pillars.p3.desc'),
       link: "",
-      linkLabel: "Coming Soon",
+      linkLabel: $t('pillars.comingSoon'),
       external: false,
     },
     {
       icon: "⚙️",
-      title: "Edge Coordination",
-      desc: "Deterministic mesh protocols enabling low-latency multi-agent swarms.",
+      title: $t('pillars.p4.title'),
+      desc: $t('pillars.p4.desc'),
       link: "explorer",
-      linkLabel: "Live Demo",
+      linkLabel: $t('pillars.liveDemo'),
       external: false,
     },
   ];
@@ -46,7 +47,7 @@
 </script>
 
 <section id="pillars" class="section">
-  <h2 class="text-3xl md:text-5xl font-bold mb-12">Innovation Pillars</h2>
+  <h2 class="text-3xl md:text-5xl font-bold mb-12">{$t('pillars.title')}</h2>
   <div class="grid md:grid-cols-4 gap-6">
     {#each pillars as p}
       <div

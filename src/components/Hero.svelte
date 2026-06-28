@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { t } from '../lib/i18n';
   
   export let scrollToId = (id: string) => {};
   
@@ -17,31 +18,29 @@
 <section class="max-w-7xl mx-auto px-6 md:px-10 pt-20 pb-10 flex flex-col gap-10 relative">
   <div class="max-w-3xl space-y-6 relative z-10">
     <h1 class="text-4xl md:text-6xl font-extrabold leading-tight hero-title" class:visible={titleVisible}>
-      Building the <span class="gradient-text animated-gradient">Convergent Future</span><br />
-      <span class="tech-stack">Blockchain • AI • Humanoid Systems</span>
+      {$t('hero.title1')} <span class="gradient-text animated-gradient">{$t('hero.title2')}</span><br />
+      <span class="tech-stack">{$t('hero.tech')}</span>
     </h1>
     <p class="text-lg md:text-xl text-white/70 hero-content" class:visible={contentVisible}>
-      StarsLab is a deep R&amp;D lab advancing decentralized cryptography,
-      intelligent autonomy, and human‑centric robotics—fusing trust, cognition,
-      and embodiment.
+      {$t('hero.desc')}
     </p>
     <div class="flex flex-wrap gap-4 hero-buttons" class:visible={contentVisible}>
       <button
         on:click={() => scrollToId("pillars")}
         class="px-6 py-3 rounded-lg font-medium bg-brand-accent hover:brightness-110 transition"
       >
-        Explore Pillars
+        {$t('hero.explore')}
       </button>
       <button
         on:click={() => scrollToId("contact")}
         class="px-6 py-3 rounded-lg font-medium bg-white/5 hover:bg-white/10 backdrop-blur border border-white/10 transition"
       >
-        Get Involved
+        {$t('hero.getInvolved')}
       </button>
     </div>
   </div>
   <div class="grid md:grid-cols-3 gap-6 mt-4 hero-cards" class:visible={cardsVisible}>
-    {#each [{ t: "Cryptographic Wallet Infra", d: "Threshold MPC, zero-knowledge, multi-chain security primitives." }, { t: "Adaptive Intelligence", d: "Model distillation + on-device reasoning for autonomous agents." }, { t: "Humanoid Integration", d: "Realtime intent fusion: perception, control, secure coordination." }] as c, i}
+    {#each [{ t: $t('hero.card1.title'), d: $t('hero.card1.desc') }, { t: $t('hero.card2.title'), d: $t('hero.card2.desc') }, { t: $t('hero.card3.title'), d: $t('hero.card3.desc') }] as c, i}
       <div
         class="tech-card glow-border rounded-2xl p-6 bg-brand-surface/60 backdrop-blur-sm flex flex-col gap-3"
         style="animation-delay: {i * 150}ms"
