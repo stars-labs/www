@@ -516,7 +516,7 @@
     {
       qEn: 'What is the difference between DKG, Multi-Sig, and Broadcasting?',
       qZh: '小白还是有点晕：DKG、多签、广播三者到底分别在什么时候发生？',
-      aEn: 'Think of it like opening and using a joint bank vault: (1) DKG happens ONCE when you create the wallet — devices cooperatively generate split key shares and your public addresses, with zero seed phrase. (2) Threshold Multi-Sig happens EVERY TIME you spend or sign — at least t devices review the transaction and jointly calculate a cryptographic signature. (3) Broadcasting happens RIGHT AFTER signing — the signed raw transaction is submitted to the blockchain’s RPC node (`eth_sendRawTransaction` / mempool) so miners/validators include it in a block. In the Chrome Extension, signing and broadcasting happen seamlessly in one flow.',
+      aEn: 'Think of it like opening and using a joint bank vault: (1) DKG happens ONCE when you create the wallet — devices cooperatively generate split key shares and your public addresses, with zero seed phrase. (2) Threshold Multi-Sig happens EVERY TIME you spend or sign — at least t devices review the transaction and jointly calculate a cryptographic signature. (3) Broadcasting happens RIGHT AFTER signing — the signed raw transaction is submitted to the blockchain’s RPC node (eth_sendRawTransaction / mempool) so miners/validators include it in a block. In the Chrome Extension, signing and broadcasting happen seamlessly in one flow.',
       aZh: '可以类比「开联名保险柜」的三件事：① DKG 只在【创建钱包时】跑一次，多台设备隔空算出各自加密分片和所有链的收款地址（没有助记词）；② 门限多签在【每次转账/授权时】发生，至少 t 台设备核对金额和收款人后联合算出合法签名；③ 广播紧跟在【签完名之后】，把带签名的原始交易发给区块链节点（RPC）打包上链。日常在 Chrome 插件转账或用 dApp 时，签完名插件会自动帮你广播上链，无需手动操作。',
     },
     {
@@ -954,8 +954,8 @@
             <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '发起签名会话' : 'Create Signing Session'}</h4>
             <p class="text-xs text-white/65 leading-relaxed">
               {$locale === 'zh'
-                ? '在插件点转账、dApp 点确认，或在桌面端填好摘要后，发起方创建一个全新一次性会话 `sign_<uuid>` 并发送给房间。'
-                : 'Clicking Send, approving a dApp, or requesting a signature on Desktop opens a fresh one-time `sign_<uuid>` session.'}
+                ? '在插件点转账、dApp 点确认，或在桌面端填好摘要后，发起方创建一个全新一次性会话（sign_...）并发送给房间。'
+                : 'Clicking Send, approving a dApp, or requesting a signature on Desktop opens a fresh one-time signing session (sign_...).'}
             </p>
           </div>
           <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-2">
@@ -981,7 +981,7 @@
             <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '交互产出标准签名' : 'Output Standard Signature'}</h4>
             <p class="text-xs text-white/65 leading-relaxed">
               {$locale === 'zh'
-                ? '双方用各自的密钥分片交互算出完整签名（EVM 输出 65 字节低-s `r‖s‖v`，BTC 输出 BIP-340 签名），全程不拼接私钥。'
+                ? '双方用各自的密钥分片交互算出完整签名（EVM 输出 65 字节低-s r‖s‖v，BTC 输出 BIP-340 签名），全程不拼接私钥。'
                 : 'Signers jointly compute the final signature (65-byte low-s ECDSA for EVM, BIP-340 for BTC, Ed25519 for SOL/SUI) without ever reconstructing the key.'}
             </p>
           </div>
@@ -1032,8 +1032,8 @@
             <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '双端协同盖章' : 'Threshold Co-Sign'}</h4>
             <p class="text-xs text-white/65 leading-relaxed">
               {$locale === 'zh'
-                ? '对交易哈希执行 2-of-2 / 2-of-3 门限签名，产出标准 `(r, s, yParity)` 签名。'
-                : 'Runs 2-of-2 / 2-of-3 threshold signing over the tx sighash to get `(r, s, yParity)`.'}
+                ? '对交易哈希执行 2-of-2 / 2-of-3 门限签名，产出标准 (r, s, yParity) 签名。'
+                : 'Runs 2-of-2 / 2-of-3 threshold signing over the tx sighash to get (r, s, yParity).'}
             </p>
           </div>
           <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-1.5">
@@ -1041,8 +1041,8 @@
             <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '序列化原始交易' : 'Serialize Raw Hex'}</h4>
             <p class="text-xs text-white/65 leading-relaxed">
               {$locale === 'zh'
-                ? '将未签名交易与门限签名按 EIP-1559 / Legacy 规则拼装成 `0x02f8...` 原始交易十六进制串。'
-                : 'Encodes tx fields + signature into broadcast-ready `0x02f8...` raw transaction bytes.'}
+                ? '将未签名交易与门限签名按 EIP-1559 / Legacy 规则拼装成 0x02f8... 原始交易十六进制串。'
+                : 'Encodes tx fields + signature into broadcast-ready 0x02f8... raw transaction bytes.'}
             </p>
           </div>
           <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-1.5">
@@ -1050,8 +1050,8 @@
             <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '发往 RPC 节点' : 'Push to RPC Node'}</h4>
             <p class="text-xs text-white/65 leading-relaxed">
               {$locale === 'zh'
-                ? '调用 `eth_sendRawTransaction`（或对应链广播接口）把原始交易推送到矿工/验证者内存池。'
-                : 'Submits via `eth_sendRawTransaction` (or chain equivalent) into the public mempool.'}
+                ? '调用 eth_sendRawTransaction（或对应链广播接口）把原始交易推送到矿工/验证者内存池。'
+                : 'Submits via eth_sendRawTransaction (or chain equivalent) into the public mempool.'}
             </p>
           </div>
           <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-1.5">
@@ -1074,7 +1074,7 @@
             <p class="text-xs sm:text-sm text-white/80 leading-relaxed">
               {$locale === 'zh'
                 ? '在 Chrome 插件内发起转账，或连接 Uniswap / OpenSea / Aave 等 dApp 发起交易时：只要桌面端和插件都点「批准」，插件会自动完成【打包 + 调用当前网络 RPC 广播】并返回交易哈希，小白零手动操作！'
-                : 'When sending inside the Chrome Extension or using any dApp (Uniswap, Aave, OpenSea): once your co-signers approve, the extension automatically assembles and broadcasts via `eth_sendRawTransaction` and returns the live Tx Hash.'}
+                : 'When sending inside the Chrome Extension or using any dApp (Uniswap, Aave, OpenSea): once your co-signers approve, the extension automatically assembles and broadcasts via eth_sendRawTransaction and returns the live Tx Hash.'}
             </p>
           </div>
           <div class="rounded-2xl p-5 bg-sky-500/10 border border-sky-400/30 space-y-2">
@@ -1220,9 +1220,11 @@
             {$locale === 'zh' ? '小白自检：怎么确认 DKG 真正成功了？' : 'Quick Check: How do I know DKG succeeded?'}
           </strong>
           <span class="ml-1">
-            {$locale === 'zh'
-              ? '两台设备都会跳转到主界面，并且你在桌面端左侧看到的 EVM 地址（例如 0xc35f...8961）和 Chrome 插件顶部显示的地址会<strong>逐字完全一模一样</strong>——证明两台设备的加密分片属于同一把数学公钥！'
-              : 'Both apps return to their main screen and show the <strong>exact same EVM address</strong> (e.g. 0xc35f...8961) character for character—proving both independent shares belong to the same group public key!'}
+            {#if $locale === 'zh'}
+              两台设备都会跳转到主界面，并且你在桌面端左侧看到的 EVM 地址（例如 <code>0xc35f...8961</code>）和 Chrome 插件顶部显示的地址会<strong>逐字完全一模一样</strong>——证明两台设备的加密分片属于同一把数学公钥！
+            {:else}
+              Both apps return to their main screen and show the <strong>exact same EVM address</strong> (e.g. <code>0xc35f...8961</code>) character for character—proving both independent shares belong to the same group public key!
+            {/if}
           </span>
         </div>
       </div>
