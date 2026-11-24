@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
+  import { navigateTo, type Route } from '../lib/router';
 
   $: projects = [
     {
@@ -7,13 +8,15 @@
       tag: $t('showcase.outcry.tag'),
       desc: $t('showcase.outcry.desc'),
       link: "https://github.com/stars-labs/pg-outcry",
+      route: null as Route | null,
       ready: true,
     },
     {
       name: $t('showcase.mpc.name'),
       tag: $t('showcase.mpc.tag'),
       desc: $t('showcase.mpc.desc'),
-      link: "https://github.com/stars-labs/mpc-wallet",
+      link: "/wallet",
+      route: "wallet" as Route | null,
       ready: true,
     },
     {
@@ -21,6 +24,7 @@
       tag: $t('showcase.signaling.tag'),
       desc: $t('showcase.signaling.desc'),
       link: "",
+      route: null as Route | null,
       ready: false,
     },
     {
@@ -28,6 +32,7 @@
       tag: $t('showcase.agent.tag'),
       desc: $t('showcase.agent.desc'),
       link: "",
+      route: null as Route | null,
       ready: false,
     },
   ];
@@ -42,7 +47,26 @@
   </div>
   <div class="grid md:grid-cols-3 gap-6">
     {#each projects as pr}
-      {#if pr.ready}
+      {#if pr.ready && pr.route}
+        <a
+          href={pr.link}
+          on:click|preventDefault={() => pr.route && navigateTo(pr.route)}
+          class="group relative rounded-2xl p-6 bg-brand-surface/60 border border-white/10 hover:border-brand-accent/60 transition flex flex-col gap-4 cursor-pointer"
+        >
+          <div class="text-xs uppercase tracking-wider text-brand-accent">
+            {pr.tag}
+          </div>
+          <h3 class="text-xl font-semibold">{pr.name}</h3>
+          <p class="text-sm text-white/65 leading-relaxed flex-1">{pr.desc}</p>
+          <span
+            class="text-sm text-white/60 group-hover:text-brand-accent transition"
+            >{$t('showcase.view')} &rarr;</span
+          >
+          <div
+            class="absolute inset-0 opacity-0 group-hover:opacity-100 transition pointer-events-none bg-[radial-gradient(circle_at_70%_30%,rgba(0,255,255,0.15),transparent_70%)]"
+          ></div>
+        </a>
+      {:else if pr.ready}
         <a
           href={pr.link}
           target="_blank"

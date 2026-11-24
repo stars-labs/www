@@ -12,6 +12,7 @@
   import LiveBlockFeed from "./components/LiveBlockFeed.svelte";
   import TransactionPanel from "./components/TransactionPanel.svelte";
   import Branches from "./components/Branches.svelte";
+  import WalletGuide from "./components/WalletGuide.svelte";
   import { currentRoute, navigateTo, type Route } from "./lib/router";
   import { locale, t } from "./lib/i18n";
   import faviconUrl from "/favicon.png";
@@ -84,8 +85,16 @@
       {/if}
       <li>
         <button
+          on:click={() => handleNavigate('wallet')}
+          class="text-white/70 hover:text-brand-accent transition cursor-pointer {$currentRoute === 'wallet' ? 'text-brand-accent font-semibold' : ''}"
+        >
+          {$t('nav.wallet')}
+        </button>
+      </li>
+      <li>
+        <button
           on:click={() => handleNavigate('explorer')}
-          class="text-white/70 hover:text-brand-accent transition {$currentRoute === 'explorer' ? 'text-brand-accent' : ''}"
+          class="text-white/70 hover:text-brand-accent transition cursor-pointer {$currentRoute === 'explorer' ? 'text-brand-accent' : ''}"
         >
           {$t('nav.explorer')}
         </button>
@@ -93,7 +102,7 @@
       <li>
         <button
           on:click={toggleLocale}
-          class="px-2 py-1 rounded text-white/70 hover:text-white bg-white/10 hover:bg-white/20 transition text-xs font-mono"
+          class="px-2 py-1 rounded text-white/70 hover:text-white bg-white/10 hover:bg-white/20 transition text-xs font-mono cursor-pointer"
         >
           {$locale === 'en' ? '中' : 'EN'}
         </button>
@@ -102,17 +111,17 @@
 
     <!-- Desktop CTA -->
     <div class="hidden md:flex gap-4">
-      {#if $currentRoute === 'explorer'}
+      {#if $currentRoute === 'explorer' || $currentRoute === 'wallet'}
         <button
           on:click={() => handleNavigate('home')}
-          class="px-4 py-2 rounded-md border border-brand-accent text-brand-accent text-sm font-medium hover:bg-brand-accent hover:text-black transition"
+          class="px-4 py-2 rounded-md border border-brand-accent text-brand-accent text-sm font-medium hover:bg-brand-accent hover:text-black transition cursor-pointer"
         >
-          Back to Home
+          {$locale === 'zh' ? '返回首页' : 'Back to Home'}
         </button>
       {:else}
         <button
           on:click={() => scrollToId("contact")}
-          class="px-4 py-2 rounded-md bg-brand-accent text-sm font-medium hover:brightness-110"
+          class="px-4 py-2 rounded-md bg-brand-accent text-sm font-medium hover:brightness-110 cursor-pointer"
         >
           Join
         </button>
@@ -154,10 +163,16 @@
           {/each}
         {/if}
         <button
+          on:click={() => handleNavigate('wallet')}
+          class="block w-full text-left text-white/70 hover:text-brand-accent transition py-2 {$currentRoute === 'wallet' ? 'text-brand-accent font-semibold' : ''}"
+        >
+          {$t('nav.wallet')}
+        </button>
+        <button
           on:click={() => handleNavigate('explorer')}
           class="block w-full text-left text-white/70 hover:text-brand-accent transition py-2 {$currentRoute === 'explorer' ? 'text-brand-accent' : ''}"
         >
-          Explorer
+          {$t('nav.explorer')}
         </button>
         <div class="pt-3 border-t border-white/10 flex items-center justify-between">
           <button
@@ -166,12 +181,12 @@
           >
             {$locale === 'en' ? '中文' : 'English'}
           </button>
-          {#if $currentRoute === 'explorer'}
+          {#if $currentRoute === 'explorer' || $currentRoute === 'wallet'}
             <button
               on:click={() => handleNavigate('home')}
               class="px-4 py-2 rounded-md border border-brand-accent text-brand-accent text-sm font-medium hover:bg-brand-accent hover:text-black transition"
             >
-              Back to Home
+              {$locale === 'zh' ? '返回首页' : 'Back to Home'}
             </button>
           {:else}
             <button
@@ -211,6 +226,9 @@
     <div id="projects"><Showcase /></div>
     <CTA />
   </main>
+  <Footer />
+{:else if $currentRoute === 'wallet'}
+  <WalletGuide />
   <Footer />
 {:else if $currentRoute === 'explorer'}
   <BlockchainExplorer />

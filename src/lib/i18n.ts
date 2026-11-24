@@ -7,6 +7,7 @@ export const locale = writable<Locale>('en');
   const translations = {
   en: {
     'nav.home': 'Home',
+    'nav.wallet': 'MPC Wallet',
     'nav.explorer': 'Explorer',
     'nav.github': 'GitHub',
     
@@ -76,6 +77,7 @@ export const locale = writable<Locale>('en');
   },
   zh: {
     'nav.home': '首页',
+    'nav.wallet': 'MPC 钱包攻略',
     'nav.explorer': '浏览器',
     'nav.github': 'GitHub',
     
