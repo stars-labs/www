@@ -6,6 +6,7 @@ workers_dev = true
 
 routes = [
   { pattern = "starslab.qzz.io", custom_domain = true },
+  { pattern = "www.starslab.qzz.io", custom_domain = true },
   { pattern = "wallet.starslab.qzz.io", custom_domain = true }
 ]
 

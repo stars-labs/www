@@ -4,18 +4,10 @@
 
   $: projects = [
     {
-      name: $t('showcase.outcry.name'),
-      tag: $t('showcase.outcry.tag'),
-      desc: $t('showcase.outcry.desc'),
-      link: "https://github.com/stars-labs/pg-outcry",
-      route: null as Route | null,
-      ready: true,
-    },
-    {
       name: $t('showcase.mpc.name'),
       tag: $t('showcase.mpc.tag'),
       desc: $t('showcase.mpc.desc'),
-      link: "/wallet",
+      link: "https://wallet.starslab.qzz.io",
       route: "wallet" as Route | null,
       ready: true,
     },
@@ -23,9 +15,17 @@
       name: $t('showcase.signaling.name'),
       tag: $t('showcase.signaling.tag'),
       desc: $t('showcase.signaling.desc'),
-      link: "",
+      link: "https://github.com/stars-labs/starlab-mpc/releases/latest",
       route: null as Route | null,
-      ready: false,
+      ready: true,
+    },
+    {
+      name: $t('showcase.outcry.name'),
+      tag: $t('showcase.outcry.tag'),
+      desc: $t('showcase.outcry.desc'),
+      link: "https://github.com/stars-labs/pg-outcry",
+      route: null as Route | null,
+      ready: true,
     },
     {
       name: $t('showcase.agent.name'),
@@ -45,7 +45,7 @@
       >{$t('showcase.allRepo')} &rarr;</a
     >
   </div>
-  <div class="grid md:grid-cols-3 gap-6">
+  <div class="grid md:grid-cols-2 gap-6">
     {#each projects as pr}
       {#if pr.ready && pr.route}
         <a

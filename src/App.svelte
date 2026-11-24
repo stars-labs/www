@@ -45,6 +45,20 @@
   function toggleLocale() {
     locale.update(l => l === 'en' ? 'zh' : 'en');
   }
+
+  $: if (typeof document !== 'undefined') {
+    if ($currentRoute === 'wallet') {
+      document.title = $locale === 'zh'
+        ? 'Starlab MPC 钱包 | 零助记词全链门限托管 & 实操攻略'
+        : 'Starlab MPC Wallet | Zero-Seed Multi-Chain Threshold Custody';
+    } else if ($currentRoute === 'explorer') {
+      document.title = $locale === 'zh'
+        ? 'StarsLab 区块浏览器'
+        : 'StarsLab | Blockchain Explorer';
+    } else {
+      document.title = 'StarsLab | Blockchain • AI • Humanoid Systems';
+    }
+  }
 </script>
 
 {#if $currentRoute === 'home'}

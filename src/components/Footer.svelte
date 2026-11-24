@@ -31,10 +31,10 @@
     <div>
       <h4 class="font-semibold mb-4">Resources</h4>
       <ul class="space-y-2 text-sm text-white/60">
-        <li><a class="hover:text-brand-accent" href="https://github.com/stars-labs" target="_blank" rel="noopener noreferrer">Repositories</a></li>
-        <li><span class="text-white/30">Whitepapers — Coming Soon</span></li>
-        <li><span class="text-white/30">Standards — Coming Soon</span></li>
-        <li><span class="text-white/30">Blog — Coming Soon</span></li>
+        <li><a class="hover:text-brand-accent" href="https://wallet.starslab.qzz.io" target="_blank" rel="noopener noreferrer">Starlab MPC Wallet</a></li>
+        <li><a class="hover:text-brand-accent" href="https://quant.starslab.qzz.io" target="_blank" rel="noopener noreferrer">Quantitative Trading</a></li>
+        <li><a class="hover:text-brand-accent" href="https://github.com/stars-labs" target="_blank" rel="noopener noreferrer">GitHub Repositories</a></li>
+        <li><a class="hover:text-brand-accent" href="https://github.com/stars-labs/starlab-desktop/releases/latest" target="_blank" rel="noopener noreferrer">Desktop &amp; Extension Releases</a></li>
       </ul>
     </div>
     <div class="space-y-4">

@@ -3,11 +3,11 @@
 
   $: branches = [
     {
-      icon: "🎮",
-      title: $t('branches.games.title'),
-      desc: $t('branches.games.desc'),
-      link: "",
-      cta: "",
+      icon: "🔐",
+      title: $t('branches.wallet.title'),
+      desc: $t('branches.wallet.desc'),
+      link: "https://wallet.starslab.qzz.io",
+      cta: $t('branches.live'),
     },
     {
       icon: "📈",
@@ -22,7 +22,14 @@
       desc: $t('branches.exchange.desc'),
       link: "https://github.com/stars-labs/pg-outcry",
       cta: $t('branches.live'),
-    }
+    },
+    {
+      icon: "🎮",
+      title: $t('branches.games.title'),
+      desc: $t('branches.games.desc'),
+      link: "",
+      cta: "",
+    },
   ];
 
   const cardClass =
@@ -31,7 +38,7 @@
 
 <section id="branches" class="section">
   <h2 class="text-3xl md:text-5xl font-bold mb-12">{$t('branches.title')}</h2>
-  <div class="grid md:grid-cols-3 gap-6">
+  <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
     {#each branches as b}
       {#if b.link}
         <a

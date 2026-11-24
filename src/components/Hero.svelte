@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { t } from '../lib/i18n';
+  import { navigateTo } from '../lib/router';
   
   export let scrollToId = (id: string) => {};
   
@@ -25,15 +26,22 @@
       {$t('hero.desc')}
     </p>
     <div class="flex flex-wrap gap-4 hero-buttons" class:visible={contentVisible}>
+      <a
+        href="https://wallet.starslab.qzz.io"
+        on:click|preventDefault={() => navigateTo('wallet')}
+        class="px-6 py-3 rounded-lg font-semibold bg-brand-accent hover:brightness-110 transition shadow-lg shadow-brand-accent/25 cursor-pointer"
+      >
+        {$t('hero.wallet')} &rarr;
+      </a>
       <button
         on:click={() => scrollToId("pillars")}
-        class="px-6 py-3 rounded-lg font-medium bg-brand-accent hover:brightness-110 transition"
+        class="px-6 py-3 rounded-lg font-medium bg-white/8 hover:bg-white/15 backdrop-blur border border-white/15 transition cursor-pointer"
       >
         {$t('hero.explore')}
       </button>
       <button
         on:click={() => scrollToId("contact")}
-        class="px-6 py-3 rounded-lg font-medium bg-white/5 hover:bg-white/10 backdrop-blur border border-white/10 transition"
+        class="px-6 py-3 rounded-lg font-medium bg-white/5 hover:bg-white/10 backdrop-blur border border-white/10 transition cursor-pointer"
       >
         {$t('hero.getInvolved')}
       </button>

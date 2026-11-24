@@ -7,9 +7,9 @@
       icon: "🛡️",
       title: $t('pillars.p1.title'),
       desc: $t('pillars.p1.desc'),
-      link: "https://github.com/stars-labs/mpc-wallet",
+      link: "wallet",
       linkLabel: $t('pillars.repo'),
-      external: true,
+      external: false,
     },
     {
       icon: "🧠",
