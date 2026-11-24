@@ -105,28 +105,28 @@
         <!-- Download row -->
         <div class="flex flex-wrap items-center gap-3 pt-1 text-xs sm:text-sm">
           <a
-            href="https://github.com/stars-labs/starlab-wallet/releases"
+            href="https://github.com/stars-labs/starlab-wallet/releases/latest"
             target="_blank"
             rel="noopener noreferrer"
             class="px-3.5 py-2 rounded-lg bg-violet-500/15 hover:bg-violet-500/25 border border-violet-400/35 text-violet-200 font-medium transition"
           >
-            Chrome Extension &nearr;
+            {$locale === 'zh' ? '下载浏览器插件 (Chrome / Edge / Firefox)' : 'Download Extension (Chrome / Edge / Firefox)'} &nearr;
           </a>
           <a
-            href="https://github.com/stars-labs/starlab-desktop/releases"
+            href="https://github.com/stars-labs/starlab-desktop/releases/latest"
             target="_blank"
             rel="noopener noreferrer"
             class="px-3.5 py-2 rounded-lg bg-white/8 hover:bg-white/15 border border-white/15 text-white/90 font-medium transition"
           >
-            Starlab Desktop &nearr;
+            {$locale === 'zh' ? '下载桌面端 (macOS / Linux / Win)' : 'Download Desktop (macOS / Linux / Win)'} &nearr;
           </a>
           <a
-            href="https://github.com/stars-labs/starlab-mpc"
+            href="https://github.com/stars-labs/starlab-mpc/releases/latest"
             target="_blank"
             rel="noopener noreferrer"
             class="px-3.5 py-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/35 text-emerald-200 font-medium transition"
           >
-            TUI & CLI (starlab-mpc) &nearr;
+            {$locale === 'zh' ? '下载 TUI / CLI (macOS / Linux / Win)' : 'Download TUI / CLI (macOS / Linux / Win)'} &nearr;
           </a>
         </div>
       </div>
@@ -975,28 +975,28 @@
           </p>
           <div class="flex flex-wrap justify-center gap-3 pt-2">
             <a
-              href="https://github.com/stars-labs/starlab-wallet"
+              href="https://github.com/stars-labs/starlab-wallet/releases/latest"
               target="_blank"
               rel="noopener noreferrer"
               class="px-6 py-3 rounded-xl bg-violet-600/85 hover:bg-violet-500 text-white font-semibold text-sm transition shadow-lg"
             >
-              {$locale === 'zh' ? '浏览器插件 (starlab-wallet)' : 'Chrome Extension'} &nearr;
+              {$locale === 'zh' ? '下载浏览器插件 (Chrome/Edge/Firefox)' : 'Download Extension (Chrome/Edge/Firefox)'} &nearr;
             </a>
             <a
-              href="https://github.com/stars-labs/starlab-desktop"
+              href="https://github.com/stars-labs/starlab-desktop/releases/latest"
               target="_blank"
               rel="noopener noreferrer"
               class="px-6 py-3 rounded-xl bg-brand-accent text-white font-semibold text-sm hover:brightness-110 transition shadow-lg"
             >
-              {$locale === 'zh' ? '桌面端 (starlab-desktop)' : 'Starlab Desktop'} &nearr;
+              {$locale === 'zh' ? '下载桌面端 (macOS/Linux/Win)' : 'Download Desktop (macOS/Linux/Win)'} &nearr;
             </a>
             <a
-              href="https://github.com/stars-labs/starlab-mpc"
+              href="https://github.com/stars-labs/starlab-mpc/releases/latest"
               target="_blank"
               rel="noopener noreferrer"
               class="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-medium text-sm transition"
             >
-              {$locale === 'zh' ? 'TUI / CLI 核心引擎 (starlab-mpc)' : 'TUI / CLI Engine'} &nearr;
+              {$locale === 'zh' ? '下载 TUI / CLI (macOS/Linux/Win)' : 'Download TUI / CLI (macOS/Linux/Win)'} &nearr;
             </a>
             <button
               type="button"
