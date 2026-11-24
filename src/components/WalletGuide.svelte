@@ -4,6 +4,7 @@
   import AnnotatedScreenshot, { type Callout } from './AnnotatedScreenshot.svelte';
 
   let openFaq: number | null = 0;
+  let activeLesson: 'dkg' | 'multisig' | 'broadcast' = 'dkg';
 
   function toggleFaq(index: number) {
     openFaq = openFaq === index ? null : index;
@@ -15,11 +16,61 @@
   }
 
   const stepsNav = [
+    { id: 'chains', num: '链', en: 'All Chains', zh: '全链支持' },
+    { id: 'concepts', num: '00', en: 'DKG · Multi-Sig · Broadcast', zh: '小白课：DKG/多签/广播' },
     { id: 'step-1', num: '01', en: 'Pair Devices', zh: '准备与配对' },
-    { id: 'step-2', num: '02', en: 'Create 2-of-2 Vault', zh: '创建多链金库' },
-    { id: 'step-3', num: '03', en: '4-Chain Receive', zh: '四链收款管理' },
-    { id: 'step-4', num: '04', en: 'Co-Sign Tx', zh: '协同门限签名' },
-    { id: 'step-5', num: '05', en: 'Encrypted Backup', zh: '分片加密备份' },
+    { id: 'step-2', num: '02', en: 'Run DKG', zh: '创建金库(DKG)' },
+    { id: 'step-3', num: '03', en: 'Multi-Chain Receive', zh: '全链收款' },
+    { id: 'step-4', num: '04', en: 'Co-Sign & Broadcast', zh: '多签与广播' },
+    { id: 'step-5', num: '05', en: 'Encrypted Backup', zh: '分片备份' },
+  ];
+
+  // --- Chain ecosystem matrix (matching Ledger's secp256k1 + Ed25519 curve coverage) ---
+  const chainFamilies = [
+    {
+      badge: 'SECP256K1 · CGGMP24 ECDSA',
+      accentClass: 'text-indigo-300 border-indigo-400/30 bg-indigo-500/10',
+      titleEn: 'All EVM Networks (100+ Chains, 1 Address)',
+      titleZh: '全 EVM 生态（100+ 条链共用同一金库地址）',
+      descEn:
+        'Built-in Ethereum, Arbitrum, Optimism, Base, Polygon, BNB Chain, Avalanche C-Chain + testnets, and add ANY custom EVM RPC (zkSync, Linea, Scroll, Blast, Mantle, Gnosis, Sonic, Berachain…).',
+      descZh:
+        '原生内置 Ethereum、Arbitrum、Optimism、Base、Polygon、BNB Chain、Avalanche 等主流网络及测试网，并支持自定义添加任意 EVM RPC（zkSync、Linea、Scroll、Blast、Mantle、Gnosis、Berachain 等全部直接通用）。',
+      pills: ['Ethereum', 'Arbitrum', 'Optimism', 'Base', 'Polygon', 'BNB Chain', 'Avalanche', 'zkSync', 'Linea', 'Scroll', '+ Any Custom EVM RPC'],
+    },
+    {
+      badge: 'SECP256K1 · BIP-340 TAPROOT FROST',
+      accentClass: 'text-amber-300 border-amber-400/30 bg-amber-500/10',
+      titleEn: 'Bitcoin Native Taproot (P2TR bc1p…)',
+      titleZh: '比特币原生 Taproot（bc1p… 最低矿工费）',
+      descEn:
+        'BIP-86 hierarchical derivation with threshold BIP-340 Schnorr signatures. On-chain transactions look identical to single-key Taproot spends — zero multisig script bloat.',
+      descZh:
+        '采用标准 BIP-86 派生路径与 BIP-340 Schnorr 门限签名；链上呈现为普通单签 Taproot 交易，不暴露多签脚本，矿工费最低、隐私性拉满。',
+      pills: ['Bitcoin Mainnet (bc1p…)', 'BIP-86 HD Accounts', 'BIP-340 Schnorr', 'Low-Fee Single-Sig Footprint'],
+    },
+    {
+      badge: 'ED25519 · FROST SCHNORR',
+      accentClass: 'text-teal-300 border-teal-400/30 bg-teal-500/10',
+      titleEn: 'Solana, Sui & Ed25519 Ecosystem',
+      titleZh: 'Solana、Sui 与 Ed25519 高性能链生态',
+      descEn:
+        'Native Ed25519 threshold signing powers Solana and Sui out of the box — the exact same elliptic curve Ledger uses across high-throughput Ed25519 chains (Aptos, TON, NEAR, Stellar, Polkadot).',
+      descZh:
+        '原生支持 Solana 与 Sui 门限签名；底层采用与 Ledger 相同的 Ed25519 椭圆曲线体系，覆盖主流高性能公链生态并支持统一 HD 多账户派生。',
+      pills: ['Solana Mainnet / Devnet', 'Sui', 'Ed25519 Curve Compatible (Aptos / TON / NEAR / Stellar)'],
+    },
+    {
+      badge: 'HARDWARE + WATCH-ONLY',
+      accentClass: 'text-violet-300 border-violet-400/30 bg-violet-500/10',
+      titleEn: 'Direct Ledger WebHID + YubiKey + Watch-Only',
+      titleZh: '原生兼容 Ledger 硬件钱包、YubiKey 与观察账户',
+      descEn:
+        'Already own a Ledger? Plug it in via WebHID inside Starlab Extension to manage your Ledger accounts alongside your MPC vaults, plus YubiKey hardware unlock and watch-only tracking.',
+      descZh:
+        '手里已经有 Ledger？插件内置 WebHID 支持直接连接 Ledger 账户与 MPC 金库同屏管理；同时支持 YubiKey 硬件解锁与任意地址的只读观察账户。',
+      pills: ['Ledger WebHID Signer', 'YubiKey Unlock', 'Watch-Only Cold Wallets', 'Air-Gap SD Card Mode'],
+    },
   ];
 
   // --- Callout definitions measured directly on final cropped WebP screenshots ---
@@ -104,10 +155,10 @@
       h: 6.5,
       anchor: 'tl',
       tone: 'neon',
-      labelEn: 'All 4 Chains Included Automatically',
-      labelZh: '一次创建，自动支持 4 大主流链',
-      detailEn: 'Ethereum (CGGMP24 ECDSA), Bitcoin Taproot (BIP-340), Solana & Sui (Ed25519 FROST).',
-      detailZh: '同步生成以太坊（门限 ECDSA）、比特币 Taproot、Solana 与 Sui 密钥。',
+      labelEn: 'Multi-Curve Keys Generated Together',
+      labelZh: '一次 DKG 自动覆盖全部主流公链曲线',
+      detailEn: 'Generates secp256k1 ECDSA (All EVM chains), secp256k1 Taproot (Bitcoin), and Ed25519 (Solana / Sui) in one go.',
+      detailZh: '一次建库同步生成全 EVM 链（ETH/ARB/OP/Base/Polygon/BSC 等）、Bitcoin Taproot、Solana 与 Sui 密钥。',
     },
     {
       id: 2,
@@ -132,8 +183,8 @@
       tone: 'accent',
       labelEn: 'Set Threshold Policy (t-of-n)',
       labelZh: '自定义门限规则（如 2-of-2 或 2-of-3）',
-      detailEn: 'Here 2 of 2 devices must co-sign; use 2-of-3 to tolerate losing any single device.',
-      detailZh: '示例为 2-of-2（双设备同时批准）；大额资产推荐 2-of-3（丢一台仍可签发）。',
+      detailEn: 'Total devices = n, Needed to sign = t. Use 2-of-3 if you want to tolerate losing any 1 device.',
+      detailZh: 'Total devices 为总设备数 n，Needed to sign 为签名门限 t；大额资产推荐 2-of-3（丢一台仍可签发）。',
     },
     {
       id: 4,
@@ -146,7 +197,7 @@
       labelEn: 'Click “Invite devices”',
       labelZh: '点击「Invite devices」广播邀请',
       detailEn: 'Publishes a temporary DKG invite inside your room so Desktop can join in one click.',
-      detailZh: '在当前房间发布一次性创建邀请，桌面端可直接点选加入。',
+      detailZh: '在当前房间发布一次性 DKG 邀请，桌面端可直接点选加入。',
     },
   ];
 
@@ -172,10 +223,10 @@
       h: 10,
       anchor: 'tl',
       tone: 'violet',
-      labelEn: 'Automatic P2P Ceremony Start',
-      labelZh: '全员到齐自动启动分布式计算',
-      detailEn: 'As soon as Desktop joins, encrypted WebRTC channels open and DKG begins automatically.',
-      detailZh: '桌面端加入后自动建立 WebRTC 端到端直连并开始无助记词密钥生成。',
+      labelEn: 'Automatic P2P DKG Start',
+      labelZh: '全员到齐自动启动 DKG 计算',
+      detailEn: 'As soon as every device joins, encrypted WebRTC channels open and DKG rounds begin automatically.',
+      detailZh: '所有参与设备加入后，自动建立 WebRTC 端到端直连并跑完 Round 1 / Round 2 协议。',
     },
   ];
 
@@ -230,10 +281,10 @@
       h: 7.5,
       anchor: 'tr',
       tone: 'neon',
-      labelEn: 'Live Cryptographic Ceremony Stepper',
-      labelZh: '实时四阶段安全协议进度',
-      detailEn: 'Connect devices → Secure setup → Create wallet → Ready. Keep both apps open (~1–2 min).',
-      detailZh: '设备互联 → 安全初始化 → 生成四链密钥 → 就绪，保持两台设备在线约 1–2 分钟即可完成。',
+      labelEn: 'Live Cryptographic DKG Stepper',
+      labelZh: '实时四阶段 DKG 安全协议进度',
+      detailEn: 'Connect devices → Secure setup → Create wallet → Ready. Keep all devices online (~1–2 min).',
+      detailZh: '设备互联 → 安全初始化 → 协同计算分片 → 就绪，保持参与设备在线约 1–2 分钟即可完成。',
     },
     {
       id: 2,
@@ -245,8 +296,8 @@
       tone: 'accent',
       labelEn: 'Verified 2-of-2 Peer Roster',
       labelZh: '已核验的 2-of-2 协同设备清单',
-      detailEn: 'Both devices compute independent shares locally — the full private key is never assembled.',
-      detailZh: '两台设备各自独立计算并保存自己的分片，完整私钥在内存中从未出现过。',
+      detailEn: 'Each device derives its own secret share locally — the full private key is never assembled.',
+      detailZh: '每台设备各自独立计算并保存自己的分片，完整私钥在内存中从未出现过。',
     },
   ];
 
@@ -261,8 +312,8 @@
       tone: 'neon',
       labelEn: 'Active Vault & Verified On-Chain Address',
       labelZh: '当前激活金库与链上地址',
-      detailEn: 'Displays Treasury’s Ethereum address (0xc35f...8961) — byte-for-byte identical on Desktop.',
-      detailZh: '展示 Treasury 的以太坊地址 0xc35f...8961，与桌面端派生结果逐字节完全一致。',
+      detailEn: 'Displays Treasury’s EVM address (0xc35f...8961) — identical across Ethereum, Arbitrum, Base, Polygon, Optimism, BSC & Desktop.',
+      detailZh: '展示 Treasury 的 EVM 地址 0xc35f...8961——在以太坊、Arbitrum、Base、Polygon、BSC 等所有 EVM 链以及桌面端完全一致。',
     },
     {
       id: 2,
@@ -272,10 +323,10 @@
       h: 5,
       anchor: 'tr',
       tone: 'violet',
-      labelEn: '4-Chain Switcher & Peer Online Badge',
-      labelZh: '四链一键切换与在线状态',
-      detailEn: 'Switch seamlessly between Ethereum, Bitcoin Taproot, Solana, and Sui.',
-      detailZh: '随时在 Ethereum、Bitcoin、Solana、Sui 之间切换查看地址与余额。',
+      labelEn: 'Network Switcher & Peer Online Badge',
+      labelZh: '全链网络切换与协签在线状态',
+      detailEn: 'Switch networks (Ethereum, Arbitrum, Base, Optimism, Polygon, Bitcoin, Solana, Sui + custom RPCs) and see live peer status.',
+      detailZh: '一键切换 Ethereum / Arbitrum / Base / Optimism / Polygon / Bitcoin / Solana / Sui 及自定义 RPC，绿点表示协签通道在线。',
     },
     {
       id: 3,
@@ -288,7 +339,7 @@
       labelEn: 'HD Multi-Account & 1-Click Copy Address',
       labelZh: 'HD 多账户派生、2-of-2 标识与一键收款',
       detailEn: 'Derive Account 0, 1, 2… without new DKG rounds (public-only HD math); click Copy address to receive.',
-      detailZh: '支持 BIP-44/86 无交互派生多个子账户，点击「Copy address」即可安全收款。',
+      detailZh: '支持 BIP-44/86 无交互派生多个子账户，点击「Copy address」即可安全收款（收款无需第二台设备在线）。',
     },
     {
       id: 4,
@@ -298,10 +349,10 @@
       h: 14,
       anchor: 'tl',
       tone: 'neon',
-      labelEn: 'Sign Message / Co-Sign Transactions',
-      labelZh: '一键发起多设备门限签名',
-      detailEn: 'Also responds automatically to dApp signing requests (EIP-1193) with 2-of-2 device approval.',
-      detailZh: '既可手动签名消息，也可在连接 Uniswap 等 dApp 时自动拉起多设备协同审批。',
+      labelEn: 'Launch Co-Signing or Connect Ledger',
+      labelZh: '发起门限多签 / 添加 Ledger 与观察账户',
+      detailEn: 'Manually co-sign messages here, auto-sign dApp transactions (auto-broadcast), or click below to plug in a Ledger.',
+      detailZh: '支持手动签名、dApp 交易自动协同签名+广播，下方还支持接入 Ledger 硬件或只读观察账户。',
     },
   ];
 
@@ -314,10 +365,10 @@
       h: 35,
       anchor: 'tl',
       tone: 'neon',
-      labelEn: 'Unified 4-Chain Vault & HD Accounts',
-      labelZh: '同一金库四链地址与 HD 账户选择',
-      detailEn: 'Solana, Sui, Bitcoin P2TR (bc1p…), and Ethereum (0xc35f…) all live under one 2-of-2 vault.',
-      detailZh: 'Solana、Sui、Bitcoin Taproot（bc1p…）与 Ethereum（0xc35f…）统一管理。',
+      labelEn: 'Unified Multi-Chain Vault & HD Accounts',
+      labelZh: '同一金库全链地址与 HD 账户选择',
+      detailEn: 'Solana, Sui, Bitcoin P2TR (bc1p…), and EVM (0xc35f…) all derive from one threshold vault.',
+      detailZh: 'Solana、Sui、Bitcoin Taproot（bc1p…）与全 EVM 地址（0xc35f…）统一管理。',
     },
     {
       id: 2,
@@ -327,10 +378,10 @@
       h: 8,
       anchor: 'tr',
       tone: 'violet',
-      labelEn: 'Choose Signing Chain',
-      labelZh: '选择签名公链（ECDSA / Taproot）',
-      detailEn: 'Ethereum runs CGGMP24 threshold ECDSA; Bitcoin runs BIP-340 Taproot FROST Schnorr.',
-      detailZh: '以太坊采用 CGGMP24 门限 ECDSA，比特币采用 BIP-340 Taproot FROST 签名。',
+      labelEn: 'Choose Signing Curve / Chain',
+      labelZh: '选择签名公链（EVM ECDSA / BTC Taproot）',
+      detailEn: 'EVM chains use CGGMP24 threshold ECDSA; Bitcoin uses BIP-340 Taproot FROST Schnorr.',
+      detailZh: '所有 EVM 链均使用 CGGMP24 门限 ECDSA，比特币使用 BIP-340 Taproot FROST 签名。',
     },
     {
       id: 3,
@@ -342,8 +393,8 @@
       tone: 'accent',
       labelEn: 'Verify Identical Signing Address',
       labelZh: '核对与插件端一致的签名地址',
-      detailEn: 'Confirm 0xc35ff126…8961 matches before entering your local share password.',
-      detailZh: '签名前核对链上地址，确认无误后再输入本机分片密码。',
+      detailEn: 'Always verify 0xc35ff126…8961 matches the target account before entering your local share password.',
+      detailZh: '签名前务必核对发件地址与待签十六进制摘要，确认无误后再输入本机分片密码。',
     },
     {
       id: 4,
@@ -354,9 +405,9 @@
       anchor: 'tr',
       tone: 'accent',
       labelEn: 'Click “Request signature”',
-      labelZh: '点击「Request signature」广播审批',
-      detailEn: 'Pushes a live signing prompt to the Chrome Extension; signature completes only after both approve.',
-      detailZh: '向浏览器插件推送实时协同审批弹窗，双方确认后交互输出标准链上签名。',
+      labelZh: '点击「Request signature」广播审批请求',
+      detailEn: 'Pushes a live signing prompt to paired co-signers; outputs standard on-chain signature once threshold approves.',
+      detailZh: '向协签设备推送实时审批弹窗，凑齐门限后产出标准签名，随后即可广播上链。',
     },
   ];
 
@@ -410,28 +461,38 @@
       seedZh: '极高 — 12 个词被拍/被偷即资产归零',
       hwEn: 'Medium — paper seed still a single point',
       hwZh: '中等 — 纸质助记词仍是单点风险',
-      mpcEn: 'Eliminated — no seed phrase ever exists',
-      mpcZh: '彻底消除 — 从未生成过完整私钥与助记词',
+      mpcEn: 'Eliminated — DKG never creates a seed phrase',
+      mpcZh: '彻底消除 — DKG 从未生成过完整私钥与助记词',
+    },
+    {
+      metricEn: 'Supported Chains & Curves',
+      metricZh: '支持公链范围（对标 Ledger）',
+      seedEn: 'Often locked to a single ecosystem (EVM-only or SOL-only)',
+      seedZh: '常局限于单一生态（仅 EVM 或仅 Solana）',
+      hwEn: 'Broad (secp256k1 + Ed25519), requires installing chain apps',
+      hwZh: '广（secp256k1 + Ed25519），需反复装卸各链固件 App',
+      mpcEn: 'Ledger-level coverage: 100+ EVM + BTC Taproot + SOL + SUI + Ledger WebHID',
+      mpcZh: '与 Ledger 同级曲线覆盖：100+ EVM 链 + BTC + SOL + SUI，且兼容接入 Ledger',
+    },
+    {
+      metricEn: 'Multi-Sig Gas Fee & Privacy',
+      metricZh: '多签 Gas 费用与链上隐私',
+      seedEn: 'Single-sig only (no native multisig)',
+      seedZh: '仅单签，无原生多签保护',
+      hwEn: 'Contract multisig costs extra Gas & exposes signers',
+      hwZh: '配合 Safe 合约多签 Gas 贵且链上暴露管理员',
+      mpcEn: 'Off-chain threshold signature = lowest single-sig Gas & zero exposure',
+      mpcZh: '链下门限协同 = 普通单签最低 Gas，链上完全隐藏多签结构',
     },
     {
       metricEn: 'Malware / Phishing Protection',
       metricZh: '防电脑木马 / 浏览器恶意插件',
-      seedEn: 'Low — compromised browser signs silently',
+      seedEn: 'Low — compromised browser drains silently',
       seedZh: '弱 — 电脑中毒可能被直接盗签',
       hwEn: 'High — physical button required',
       hwZh: '高 — 需物理按键确认',
-      mpcEn: 'High — requires threshold approval across devices',
-      mpcZh: '高 — 单台设备中毒无法凑齐门限签名',
-    },
-    {
-      metricEn: 'Multi-Chain Native Support',
-      metricZh: '主流公链原生支持',
-      seedEn: 'Often fragmented per ecosystem',
-      seedZh: '常需安装多个不同生态钱包',
-      hwEn: 'Requires installing separate chain apps',
-      hwZh: '需反复安装卸载各链固件 App',
-      mpcEn: 'ETH + BTC Taproot + SOL + SUI in 1 vault',
-      mpcZh: '一个金库原生覆盖 ETH / BTC / SOL / SUI',
+      mpcEn: 'High — requires threshold approval across separate devices',
+      mpcZh: '高 — 单台设备中毒无法凑齐门限签名，另一端可直接拒绝',
     },
     {
       metricEn: 'Hardware Cost & Setup',
@@ -440,22 +501,24 @@
       seedZh: '免费',
       hwEn: '$80–$250 + shipping wait',
       hwZh: '¥600–¥2000 且需等待邮寄',
-      mpcEn: 'Free — use devices you already own (+ optional YubiKey)',
-      mpcZh: '免费 — 直接用现有电脑/浏览器即可组建（可选 YubiKey）',
-    },
-    {
-      metricEn: 'Privacy & On-Chain Footprint',
-      metricZh: '链上隐私与 Gas 费用',
-      seedEn: 'Standard single-sig tx',
-      seedZh: '标准单签交易',
-      hwEn: 'Standard single-sig tx',
-      hwZh: '标准单签交易',
-      mpcEn: 'Indistinguishable from single-sig (lowest gas, zero multisig bloat)',
-      mpcZh: '链上与普通单签完全一致（最低 Gas，无多签合约开销）',
+      mpcEn: 'Free — use devices you already own (+ optional YubiKey / Ledger)',
+      mpcZh: '免费 — 直接用现有电脑/浏览器组建（可选搭配 YubiKey / Ledger）',
     },
   ];
 
   const faqs = [
+    {
+      qEn: 'Does Starlab really support as many chains as Ledger?',
+      qZh: '真的和 Ledger 支持的链一样多吗？具体支持哪些链？',
+      aEn: 'Yes — at the cryptographic layer, Ledger secures the vast majority of crypto assets using two curves: secp256k1 (all EVM chains + Bitcoin) and Ed25519 (Solana, Sui, Aptos, TON, NEAR, etc.). Starlab MPC implements threshold cryptography across the exact same curves: one vault unlocks Ethereum + Arbitrum + Optimism + Base + Polygon + BNB Chain + Avalanche + ANY custom EVM RPC (100+ chains with the same 0x address), Bitcoin Taproot (bc1p…), Solana, and Sui. Plus, you can even connect a physical Ledger via WebHID inside the extension.',
+      aZh: '是的！硬件钱包（如 Ledger）能支持上百条公链的核心原因，是底层支持 secp256k1 和 Ed25519 两条椭圆曲线。Starlab MPC 用门限密码学完整覆盖了这两条曲线：一次创建即可同时使用所有 EVM 链（内置 Ethereum、Arbitrum、Optimism、Base、Polygon、BNB Chain、Avalanche 并支持任意自定义 EVM RPC，上百条链共用同一个 0x 地址）、Bitcoin Taproot（bc1p…）、Solana 与 Sui；并且插件原生支持 WebHID 直连 Ledger 硬件钱包统一管理。',
+    },
+    {
+      qEn: 'What is the difference between DKG, Multi-Sig, and Broadcasting?',
+      qZh: '小白还是有点晕：DKG、多签、广播三者到底分别在什么时候发生？',
+      aEn: 'Think of it like opening and using a joint bank vault: (1) DKG happens ONCE when you create the wallet — devices cooperatively generate split key shares and your public addresses, with zero seed phrase. (2) Threshold Multi-Sig happens EVERY TIME you spend or sign — at least t devices review the transaction and jointly calculate a cryptographic signature. (3) Broadcasting happens RIGHT AFTER signing — the signed raw transaction is submitted to the blockchain’s RPC node (`eth_sendRawTransaction` / mempool) so miners/validators include it in a block. In the Chrome Extension, signing and broadcasting happen seamlessly in one flow.',
+      aZh: '可以类比「开联名保险柜」的三件事：① DKG 只在【创建钱包时】跑一次，多台设备隔空算出各自加密分片和所有链的收款地址（没有助记词）；② 门限多签在【每次转账/授权时】发生，至少 t 台设备核对金额和收款人后联合算出合法签名；③ 广播紧跟在【签完名之后】，把带签名的原始交易发给区块链节点（RPC）打包上链。日常在 Chrome 插件转账或用 dApp 时，签完名插件会自动帮你广播上链，无需手动操作。',
+    },
     {
       qEn: 'What happens if I lose one device or reinstall Chrome?',
       qZh: '如果我的某一台设备坏了，或者不小心重装了浏览器怎么办？',
@@ -463,22 +526,10 @@
       aZh: '首先，完成 Step 5 的「分片加密备份」后，只需在新设备导入对应加密 JSON 文件并输入密码即可原地恢复。其次，对于大额资产强烈建议创建 2-of-3 金库（如插件 + 常用电脑 + 备用设备）：即使永久丢失任意一台设备，其余两台依然可以正常协同签名转移资产。',
     },
     {
-      qEn: 'Can StarsLab or the signal server see my private keys or steal my funds?',
-      qZh: 'StarsLab 官方或信令服务器能看到我的私钥、或者偷偷转走我的币吗？',
-      aEn: 'Never. All FROST and CGGMP24 cryptographic rounds execute strictly inside your local devices (native Rust on Desktop, compiled Rust→WASM in the Extension) over direct WebRTC data channels. The signaling server only relays room membership and WebRTC SDP handshakes — and you can self-host your own signal server in 1 minute from our open-source repo.',
-      aZh: '绝无可能。所有 FROST 与 CGGMP24 密码学计算都在你的本地设备内完成（桌面端为原生 Rust，插件端为本地 WASM 沙箱），关键协议消息通过 WebRTC 端到端直连传输。信令服务器只负责房间发现与握手转发，你也可以直接用开源仓库 1 分钟自建私有信令服务器。',
-    },
-    {
-      qEn: 'Which blockchains and cryptographic schemes are supported?',
-      qZh: '目前支持哪些公链和底层密码学算法？',
-      aEn: 'Every unified vault automatically supports four ecosystems from one setup: Ethereum & EVM chains (CGGMP24 threshold ECDSA at m/44\'/60\'/0\'/0/n), Bitcoin Taproot P2TR bc1p… addresses (FROST BIP-340 Schnorr at m/86\'/0\'/0\'/0/n), Solana (FROST Ed25519), and Sui (FROST Ed25519). Additional accounts (Account 0, 1, 2…) are derived via public-only HD math without re-running DKG.',
-      aZh: '一次创建自动支持四大生态：Ethereum 及 EVM 链（CGGMP24 门限 ECDSA，m/44\'/60\'/0\'/0/n）、Bitcoin Taproot bc1p… 原生隔离见证 v1（FROST BIP-340 Schnorr，m/86\'/0\'/0\'/0/n）、Solana（FROST Ed25519）与 Sui（FROST Ed25519）。后续新增子账户采用纯公钥 HD 派生，无需重新跑 DKG。',
-    },
-    {
-      qEn: 'Can I use YubiKey or watch-only / hardware accounts with the browser extension?',
-      qZh: '浏览器插件支持 YubiKey 硬件解锁，或者导入观察账户吗？',
-      aEn: 'Yes! On first launch the Chrome Extension lets you bind a YubiKey (FIDO2/WebAuthn PRF) or a strong local password to unlock your encrypted share. Inside the dashboard you can also click “+ Add hardware or watch-only account” to track external cold wallets side by side.',
-      aZh: '支持！浏览器插件首次初始化即可选择 YubiKey 硬件解锁或强密码保护本地分片；在主界面中也可以点击「+ Add hardware or watch-only account」添加硬件或只读观察账户统一查看资产。',
+      qEn: 'Can StarsLab or the signal server see my private keys or broadcast unauthorized transactions?',
+      qZh: 'StarsLab 官方或信令服务器能看到我的私钥、或者偷偷帮我广播交易吗？',
+      aEn: 'Never. All FROST and CGGMP24 cryptographic rounds execute strictly inside your local devices (native Rust on Desktop, compiled Rust→WASM in the Extension) over direct WebRTC data channels. The signaling server only relays room membership and WebRTC SDP handshakes — it never receives key shares and cannot forge a signature. You can also self-host your own signal server in 1 minute from our open-source repo.',
+      aZh: '绝无可能。所有 FROST 与 CGGMP24 密码学计算都在你的本地设备内完成（桌面端为原生 Rust，插件端为本地 WASM 沙箱），关键协议消息通过 WebRTC 端到端直连传输。信令服务器只负责房间发现与握手转发，拿不到任何分片，更无法伪造签名或擅自广播交易；你也可以 1 分钟自建私有信令服务器。',
     },
     {
       qEn: 'Is Starlab MPC 100% open source and verifiable?',
@@ -506,27 +557,27 @@
         >
           <span class="w-2 h-2 rounded-full bg-brand-neon animate-pulse"></span>
           {$locale === 'zh'
-            ? 'STARLAB MPC 钱包 · 开源无助记词门限金库'
-            : 'STARLAB MPC WALLET · OPEN-SOURCE THRESHOLD VAULT'}
+            ? 'STARLAB MPC 钱包 · 与 Ledger 同级全链覆盖 · 零助记词'
+            : 'STARLAB MPC WALLET · LEDGER-SCALE MULTI-CHAIN · ZERO SEED'}
         </div>
 
-        <h1 class="text-4xl sm:text-5xl lg:text-[3.4rem] font-extrabold tracking-tight leading-[1.12]">
+        <h1 class="text-4xl sm:text-5xl lg:text-[3.35rem] font-extrabold tracking-tight leading-[1.12]">
           {#if $locale === 'zh'}
             告别助记词：<br />
             <span class="gradient-text">私钥从未完整存在</span><br />
-            于任何一台设备
+            全链金库一网打尽
           {:else}
             Zero Seed Phrases.<br />
-            <span class="gradient-text">Your Key Never Exists</span><br />
-            in One Place.
+            <span class="gradient-text">Ledger-Scale Multi-Chain</span><br />
+            Threshold Custody.
           {/if}
         </h1>
 
         <p class="text-base sm:text-lg text-white/75 leading-relaxed max-w-xl">
           {#if $locale === 'zh'}
-            用你手头的 <strong>桌面客户端 + Chrome 浏览器插件</strong>，5 分钟搭建企业级 <strong>2-of-2 / 2-of-3 多方计算（MPC）金库</strong>。一个金库原生打通 <strong>Ethereum、Bitcoin Taproot、Solana、Sui</strong> 四大公链，真实截图带标注，手把手带你一次上手。
+            用你手头的 <strong>桌面端 + Chrome 插件</strong>，5 分钟搭建企业级 <strong>2-of-2 / 2-of-3 MPC 金库</strong>。底层覆盖与 <strong>Ledger 硬件钱包同级</strong> 的 <code>secp256k1 + Ed25519</code> 曲线体系——<strong>100+ EVM 链（ETH/ARB/OP/Base/Polygon/BSC/自定义 RPC）+ Bitcoin Taproot + Solana + Sui</strong> 全支持，更附<strong>零基础小白完整教材</strong>（DKG · 门限多签 · 广播上链全讲透）。
           {:else}
-            Pair the <strong>Starlab Desktop App</strong> with the <strong>Chrome Extension</strong> in 5 minutes to build a self-custodial <strong>2-of-2 or 2-of-3 MPC vault</strong>. One setup natively unlocks <strong>Ethereum, Bitcoin Taproot, Solana, and Sui</strong> — follow this real-screenshot annotated walkthrough.
+            Turn your existing <strong>Desktop + Chrome Extension</strong> into a self-custodial <strong>2-of-2 or 2-of-3 MPC vault</strong> in 5 minutes. Powered by the exact same <code>secp256k1 + Ed25519</code> curve foundation as <strong>Ledger</strong> — covering <strong>100+ EVM chains + Bitcoin Taproot + Solana + Sui</strong> — with a complete beginner-friendly visual guide to <strong>DKG, Multi-Sig, and Broadcasting</strong>.
           {/if}
         </p>
 
@@ -534,10 +585,10 @@
         <div class="flex flex-wrap gap-3 pt-2">
           <button
             type="button"
-            on:click={() => scrollToStep('step-1')}
+            on:click={() => scrollToStep('concepts')}
             class="px-6 py-3.5 rounded-xl bg-brand-accent text-white font-semibold text-sm sm:text-base shadow-[0_10px_30px_rgba(233,69,96,0.35)] hover:brightness-110 transition cursor-pointer"
           >
-            {$locale === 'zh' ? '开始 5 分钟图文攻略 ↓' : 'Start 5-Min Visual Guide ↓'}
+            {$locale === 'zh' ? '从零开始学：小白完整教材 ↓' : 'Start Beginner Guide (DKG → Broadcast) ↓'}
           </button>
           <a
             href="https://github.com/stars-labs/starlab-desktop/releases"
@@ -561,15 +612,15 @@
         <div class="pt-1 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-white/60 font-mono">
           <span class="flex items-center gap-1.5">
             <span class="text-emerald-400">✓</span>
-            {$locale === 'zh' ? '100% 实机运行截屏' : '100% Real App Captures'}
+            {$locale === 'zh' ? '100+ EVM + BTC + SOL + SUI' : '100+ EVM + BTC + SOL + SUI'}
           </span>
           <span class="flex items-center gap-1.5">
             <span class="text-emerald-400">✓</span>
-            {$locale === 'zh' ? '可点击编号交互高亮' : 'Interactive Numbered Callouts'}
+            {$locale === 'zh' ? 'DKG / 多签 / 广播全图解' : 'DKG · Multi-Sig · Broadcast Explained'}
           </span>
           <span class="flex items-center gap-1.5">
             <span class="text-emerald-400">✓</span>
-            {$locale === 'zh' ? 'MIT / 开源可审计' : 'Open-Source Rust + WASM'}
+            {$locale === 'zh' ? '兼容 Ledger WebHID & YubiKey' : 'Ledger WebHID & YubiKey Ready'}
           </span>
         </div>
       </div>
@@ -618,36 +669,36 @@
     <!-- 4 Trust Stat Badges -->
     <div class="mt-16 sm:mt-20 grid grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="rounded-2xl p-5 bg-brand-surface/65 border border-white/10">
-        <div class="text-xs font-mono uppercase tracking-wider text-brand-neon mb-1">FROST + CGGMP24</div>
+        <div class="text-xs font-mono uppercase tracking-wider text-brand-neon mb-1">SECP256K1 + ED25519</div>
         <div class="text-lg font-bold text-white">
-          {$locale === 'zh' ? '学术级门限密码学' : 'Audited Threshold Crypto'}
+          {$locale === 'zh' ? '与 Ledger 同级全链覆盖' : 'Ledger-Level Chain Coverage'}
         </div>
         <p class="text-xs text-white/60 mt-1">
           {$locale === 'zh'
-            ? 'Schnorr (BIP-340/Ed25519) 与门限 ECDSA 原生协同'
-            : 'Native threshold Schnorr & ECDSA with zero single-key reconstruction'}
+            ? '100+ EVM 链 + Bitcoin Taproot + Solana + Sui，一库全通'
+            : '100+ EVM networks + Bitcoin Taproot + Solana + Sui from one vault'}
         </p>
       </div>
       <div class="rounded-2xl p-5 bg-brand-surface/65 border border-white/10">
-        <div class="text-xs font-mono uppercase tracking-wider text-brand-accent mb-1">ETH · BTC · SOL · SUI</div>
+        <div class="text-xs font-mono uppercase tracking-wider text-brand-accent mb-1">FROST + CGGMP24</div>
         <div class="text-lg font-bold text-white">
-          {$locale === 'zh' ? '四链合一 · 一次创建' : '4 Chains · 1 Vault'}
+          {$locale === 'zh' ? '无助记词分布式密钥' : 'Zero-Seed DKG + Multi-Sig'}
         </div>
         <p class="text-xs text-white/60 mt-1">
           {$locale === 'zh'
-            ? '支持 BIP-44/86 HD 多账户派生与 Taproot bc1p 地址'
-            : 'BIP-44/86 HD accounts & native Bitcoin P2TR Taproot out of the box'}
+            ? '链下门限协同签名，链上普通单签最低 Gas'
+            : 'Off-chain threshold signing with lowest single-sig gas fees'}
         </p>
       </div>
       <div class="rounded-2xl p-5 bg-brand-surface/65 border border-white/10">
-        <div class="text-xs font-mono uppercase tracking-wider text-violet-300 mb-1">WebRTC P2P</div>
+        <div class="text-xs font-mono uppercase tracking-wider text-violet-300 mb-1">AUTO + OFFLINE BROADCAST</div>
         <div class="text-lg font-bold text-white">
-          {$locale === 'zh' ? '零托管 · 端到端直连' : 'Zero Custody · Direct P2P'}
+          {$locale === 'zh' ? '一键自动广播 + 离线冷签' : 'Auto RPC + Air-Gap Broadcast'}
         </div>
         <p class="text-xs text-white/60 mt-1">
           {$locale === 'zh'
-            ? '分片永不出本机，不依赖任何中心化云端托管'
-            : 'Encrypted shares stay strictly on your own devices — never in the cloud'}
+            ? 'dApp / 插件签完自动广播上链，也支持 SD 卡离线签名'
+            : 'Instant RPC broadcast after co-signing, plus offline SD-card signing'}
         </p>
       </div>
       <div class="rounded-2xl p-5 bg-brand-surface/65 border border-white/10">
@@ -664,65 +715,17 @@
     </div>
   </section>
 
-  <!-- WHY MPC COMPARISON TABLE -->
-  <section class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 py-14">
-    <div class="text-center max-w-3xl mx-auto mb-10">
-      <p class="text-xs font-mono uppercase tracking-widest text-brand-accent mb-2">
-        {$locale === 'zh' ? '为什么选择 MPC 门限钱包' : 'WHY THRESHOLD MPC'}
-      </p>
-      <h2 class="text-2xl sm:text-4xl font-bold">
-        {$locale === 'zh'
-          ? '告别“抄助记词提心吊胆”的时代'
-          : 'Stronger Than Seed Phrases. Simpler Than Hardware.'}
-      </h2>
-    </div>
-
-    <div class="overflow-x-auto rounded-2xl border border-white/10 bg-[#121826]/85 shadow-2xl">
-      <table class="w-full text-left border-collapse min-w-[680px]">
-        <thead>
-          <tr class="border-b border-white/10 bg-black/30 text-xs uppercase tracking-wider font-mono">
-            <th class="p-4 text-white/60">{$locale === 'zh' ? '安全与体验维度' : 'Dimension'}</th>
-            <th class="p-4 text-white/60">{$locale === 'zh' ? '传统助记词钱包' : 'Seed Phrase Wallet'}</th>
-            <th class="p-4 text-white/60">{$locale === 'zh' ? '单台硬件钱包' : 'Single Hardware Wallet'}</th>
-            <th class="p-4 text-brand-neon bg-brand-neon/5">
-              ★ {$locale === 'zh' ? 'Starlab MPC (2-of-2 / 2-of-3)' : 'Starlab MPC (2-of-2 / 2-of-3)'}
-            </th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-white/10 text-sm">
-          {#each comparisons as row}
-            <tr class="hover:bg-white/[0.02] transition">
-              <td class="p-4 font-semibold text-white">
-                {$locale === 'zh' ? row.metricZh : row.metricEn}
-              </td>
-              <td class="p-4 text-white/60">
-                {$locale === 'zh' ? row.seedZh : row.seedEn}
-              </td>
-              <td class="p-4 text-white/70">
-                {$locale === 'zh' ? row.hwZh : row.hwEn}
-              </td>
-              <td class="p-4 text-white font-medium bg-brand-neon/[0.04]">
-                <span class="text-emerald-400 mr-1.5">✓</span>
-                {$locale === 'zh' ? row.mpcZh : row.mpcEn}
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- STICKY 5-STEP NAVIGATOR -->
-  <div class="sticky top-16 z-40 backdrop-blur-md bg-[#0f141e]/85 border-y border-white/10">
+  <!-- STICKY NAVIGATOR -->
+  <div class="sticky top-16 z-40 backdrop-blur-md bg-[#0f141e]/88 border-y border-white/10">
     <div class="max-w-7xl mx-auto px-4 md:px-10 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
-      <span class="text-xs font-mono text-white/45 uppercase tracking-wider mr-2 shrink-0 hidden sm:inline">
-        {$locale === 'zh' ? '图文步骤：' : 'GUIDE STEPS:'}
+      <span class="text-xs font-mono text-white/45 uppercase tracking-wider mr-1 shrink-0 hidden md:inline">
+        {$locale === 'zh' ? '目录：' : 'SECTIONS:'}
       </span>
       {#each stepsNav as st}
         <button
           type="button"
           on:click={() => scrollToStep(st.id)}
-          class="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white/5 hover:bg-brand-accent/20 text-white/80 hover:text-white border border-white/10 hover:border-brand-accent/40 transition shrink-0 cursor-pointer"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white/5 hover:bg-brand-accent/20 text-white/80 hover:text-white border border-white/10 hover:border-brand-accent/40 transition shrink-0 cursor-pointer"
         >
           <span class="font-mono text-brand-neon text-xs">{st.num}</span>
           <span>{$locale === 'zh' ? st.zh : st.en}</span>
@@ -731,8 +734,366 @@
     </div>
   </div>
 
+  <!-- FULL CHAIN COVERAGE SECTION (LEDGER-SCALE) -->
+  <section id="chains" class="relative z-10 scroll-mt-36 max-w-7xl mx-auto px-6 md:px-10 pt-16 pb-10 space-y-8">
+    <div class="max-w-3xl space-y-3">
+      <p class="text-xs font-mono uppercase tracking-widest text-brand-neon">
+        {$locale === 'zh' ? '不止 4 条链 · 与 LEDGER 同级多链覆盖' : 'FAR MORE THAN 4 CHAINS · LEDGER-SCALE ECOSYSTEM'}
+      </p>
+      <h2 class="text-2xl sm:text-4xl font-bold leading-tight">
+        {$locale === 'zh'
+          ? '一套 MPC 密钥体系，覆盖 Ledger 同级全主流公链'
+          : 'One Threshold Curve Stack — Every Major Chain Ledger Supports'}
+      </h2>
+      <p class="text-sm sm:text-base text-white/70 leading-relaxed">
+        {#if $locale === 'zh'}
+          Ledger 之所以能支持上百条公链，本质上是底层支持了 <strong>secp256k1</strong> 与 <strong>Ed25519</strong> 两条密码学曲线。Starlab MPC 用<strong>门限密码学</strong>完整覆盖了同样的曲线底座——<strong>一次创建，全 EVM 生态上百条链（含自定义 RPC）、Bitcoin Taproot、Solana、Sui 全部打通</strong>，并且插件还支持直接接入你现有的 Ledger 硬件钱包！
+        {:else}
+          Ledger supports hundreds of networks because virtually all major blockchains run on two elliptic curves: <strong>secp256k1</strong> and <strong>Ed25519</strong>. Starlab MPC implements threshold signing across the exact same curves — unlocking <strong>100+ EVM networks (plus any custom RPC), Bitcoin Taproot, Solana, and Sui</strong> from a single vault, while also letting you plug in your existing Ledger via WebHID.
+        {/if}
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+      {#each chainFamilies as fam}
+        <div class="rounded-2xl p-6 bg-[#121826]/90 border border-white/10 hover:border-white/20 transition space-y-4">
+          <span class="inline-block px-2.5 py-1 rounded-md text-[11px] font-mono border {fam.accentClass}">
+            {fam.badge}
+          </span>
+          <h3 class="text-xl font-bold text-white">
+            {$locale === 'zh' ? fam.titleZh : fam.titleEn}
+          </h3>
+          <p class="text-sm text-white/70 leading-relaxed">
+            {$locale === 'zh' ? fam.descZh : fam.descEn}
+          </p>
+          <div class="flex flex-wrap gap-2 pt-1">
+            {#each fam.pills as pill}
+              <span class="px-2.5 py-1 rounded-lg text-xs font-mono bg-black/40 border border-white/10 text-white/80">
+                {pill}
+              </span>
+            {/each}
+          </div>
+        </div>
+      {/each}
+    </div>
+  </section>
+
+  <!-- BEGINNER FUNDAMENTALS ACADEMY: DKG · MULTI-SIG · BROADCAST -->
+  <section id="concepts" class="relative z-10 scroll-mt-36 max-w-7xl mx-auto px-6 md:px-10 py-14 space-y-8">
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+      <div class="max-w-3xl space-y-3">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-brand-accent/20 text-brand-accent border border-brand-accent/40">
+          {$locale === 'zh' ? 'STEP 00 · 零基础小白必修课' : 'STEP 00 · BEGINNER MASTERCLASS'}
+        </div>
+        <h2 class="text-2xl sm:text-4xl font-bold">
+          {$locale === 'zh'
+            ? '3 分钟彻底讲透：DKG、门限多签、交易广播'
+            : 'Master the 3 Core Concepts in 3 Minutes: DKG, Multi-Sig & Broadcast'}
+        </h2>
+        <p class="text-sm sm:text-base text-white/70 leading-relaxed">
+          {$locale === 'zh'
+            ? '哪怕你是第一次听说 MPC 钱包，下面这三张白话卡片也能让你彻底搞明白「钱包怎么生出来的 → 转账怎么多设备签字 → 签完名怎么真正广播上链」。'
+            : 'New to MPC wallets? These three plain-English lessons explain exactly how keys are born without a seed phrase (DKG), how devices co-sign (Multi-Sig), and how signed transactions land on-chain (Broadcast).'}
+        </p>
+      </div>
+
+      <!-- Interactive lesson tabs -->
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          on:click={() => (activeLesson = 'dkg')}
+          class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border transition cursor-pointer {activeLesson === 'dkg'
+            ? 'bg-brand-neon/15 text-brand-neon border-brand-neon/50 shadow-[0_0_20px_rgba(0,255,255,0.15)]'
+            : 'bg-white/5 text-white/70 border-white/10 hover:text-white'}"
+        >
+          1. {$locale === 'zh' ? '什么是 DKG（建库）' : 'What is DKG?'}
+        </button>
+        <button
+          type="button"
+          on:click={() => (activeLesson = 'multisig')}
+          class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border transition cursor-pointer {activeLesson === 'multisig'
+            ? 'bg-violet-500/20 text-violet-200 border-violet-400/50 shadow-[0_0_20px_rgba(167,139,250,0.2)]'
+            : 'bg-white/5 text-white/70 border-white/10 hover:text-white'}"
+        >
+          2. {$locale === 'zh' ? '什么是门限多签' : 'Threshold Multi-Sig'}
+        </button>
+        <button
+          type="button"
+          on:click={() => (activeLesson = 'broadcast')}
+          class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border transition cursor-pointer {activeLesson === 'broadcast'
+            ? 'bg-brand-accent/20 text-brand-accent border-brand-accent/50 shadow-[0_0_20px_rgba(233,69,96,0.2)]'
+            : 'bg-white/5 text-white/70 border-white/10 hover:text-white'}"
+        >
+          3. {$locale === 'zh' ? '什么是交易广播上链' : 'Transaction Broadcast'}
+        </button>
+      </div>
+    </div>
+
+    <!-- Lesson 1: DKG -->
+    {#if activeLesson === 'dkg'}
+      <div class="rounded-3xl p-6 sm:p-8 bg-[#121826]/95 border border-brand-neon/30 shadow-2xl space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
+          <div>
+            <span class="text-xs font-mono text-brand-neon uppercase tracking-wider">LESSON 01 · DISTRIBUTED KEY GENERATION</span>
+            <h3 class="text-xl sm:text-2xl font-bold mt-1">
+              {$locale === 'zh'
+                ? '什么是 DKG（分布式密钥生成）？为什么压根没有 12 个助记词？'
+                : 'What is DKG (Distributed Key Generation)? Why No Seed Phrase?'}
+            </h3>
+          </div>
+          <span class="px-3 py-1.5 rounded-lg text-xs font-mono bg-brand-neon/10 text-brand-neon border border-brand-neon/30 shrink-0">
+            {$locale === 'zh' ? '仅在创建钱包时运行 1 次' : 'Runs ONCE at Wallet Creation'}
+          </span>
+        </div>
+
+        <!-- Plain-English Analogy -->
+        <div class="rounded-2xl p-5 bg-black/35 border border-white/10 text-sm text-white/85 leading-relaxed">
+          <strong class="text-brand-neon">
+            {$locale === 'zh' ? '🎯 一句话白话类比：' : '🎯 Plain-English Analogy:'}
+          </strong>
+          {#if $locale === 'zh'}
+            传统钱包（MetaMask 等）就像<strong>先造出一把完整金库钥匙（12 个助记词）</strong>，谁抄走谁就能把钱搬空；而 <strong>DKG</strong> 是让你的电脑和浏览器插件<strong>隔空做一场密码学协作</strong>——每台设备各自独立算出一块<strong>专属加密分片（Key Share）</strong>，并共同推导出全网公开的收款地址（公钥）。<strong>从始至终，完整私钥从未在任何一台设备的内存、硬盘或网络中存在过！</strong>
+          {:else}
+            Traditional wallets mint one master key (12 seed words)—anyone who snaps a photo steals everything. <strong>DKG</strong> lets your Desktop and Chrome Extension run an encrypted math ceremony where each device computes only its own private <strong>Key Share</strong> while deriving the exact same public addresses. <strong>The complete private key never exists anywhere—not in RAM, not on disk, not over the network.</strong>
+          {/if}
+        </div>
+
+        <!-- 4-stage visual diagram -->
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-2">
+            <div class="text-xs font-mono text-brand-neon">STAGE 1 · SAFE PRIMES</div>
+            <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '后台预计算安全素数' : 'Pre-Generate Safe Primes'}</h4>
+            <p class="text-xs text-white/65 leading-relaxed">
+              {$locale === 'zh'
+                ? '应用启动后后台自动算好 CGGMP24 门限 ECDSA 所需的安全素数（桌面端约 1.5 分钟），完成后显示 “Secure setup: ready”。'
+                : 'Clients pre-compute safe primes in the background (~1.5 min native) for threshold ECDSA, showing “Secure setup: ready”.'}
+            </p>
+          </div>
+          <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-2">
+            <div class="text-xs font-mono text-brand-neon">STAGE 2 · ROOM & WEBRTC</div>
+            <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '同房号建立 P2P 直连' : 'Pair via Room → WebRTC P2P'}</h4>
+            <p class="text-xs text-white/65 leading-relaxed">
+              {$locale === 'zh'
+                ? '所有参与设备加入同一个 Room ID 并点选邀请，建立端到端 WebRTC 数据通道（信令服只帮握手，不接触密钥）。'
+                : 'All n devices join the same Room ID, accept the invite, and open encrypted direct WebRTC data channels.'}
+            </p>
+          </div>
+          <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-2">
+            <div class="text-xs font-mono text-brand-neon">STAGE 3 · ROUND 1 & 2</div>
+            <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '交换加密承诺与多项式' : 'Round 1 & 2 Math Exchange'}</h4>
+            <p class="text-xs text-white/65 leading-relaxed">
+              {$locale === 'zh'
+                ? '同步跑完 FROST（Ed25519 + BTC Taproot）和 CGGMP24（全 EVM 链）协议，互相验证零知识证明防作弊。'
+                : 'Runs FROST (Ed25519 + BTC Taproot) and CGGMP24 (All EVM) with zero-knowledge proofs verifying every participant.'}
+            </p>
+          </div>
+          <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-2">
+            <div class="text-xs font-mono text-brand-neon">STAGE 4 · ENCRYPT SHARE</div>
+            <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '各自加密保存本机分片' : 'Encrypt Local Share Only'}</h4>
+            <p class="text-xs text-white/65 leading-relaxed">
+              {$locale === 'zh'
+                ? '每台设备用各自独立口令（PBKDF2 + AES-256-GCM）把自己的分片锁进本地 Keystore，所有公链地址立即生效！'
+                : 'Each device encrypts only its own share with an independent password (PBKDF2 + AES-256-GCM). Your vault is live!'}
+            </p>
+          </div>
+        </div>
+
+        <!-- Beginner rules for t-of-n -->
+        <div class="grid md:grid-cols-2 gap-4 pt-1 text-xs sm:text-sm">
+          <div class="rounded-xl p-4 bg-emerald-500/10 border border-emerald-400/25">
+            <strong class="text-emerald-300">{$locale === 'zh' ? '✓ 2-of-2 怎么理解？' : '✓ How 2-of-2 works:'}</strong>
+            <span class="text-white/75 ml-1">
+              {$locale === 'zh'
+                ? '共 2 台设备（如插件 + 桌面端），每次转币必须 2 台同时同意。单台电脑中毒无法转币，但务必把两台加密分片分别备份防设备损坏。'
+                : '2 devices total, both must approve every spend. Stops single-device hacks; always back up both encrypted shares separately.'}
+            </span>
+          </div>
+          <div class="rounded-xl p-4 bg-amber-500/10 border border-amber-400/25">
+            <strong class="text-amber-300">{$locale === 'zh' ? '★ 2-of-3 为什么最适合大额？' : '★ Why 2-of-3 is gold standard:'}</strong>
+            <span class="text-white/75 ml-1">
+              {$locale === 'zh'
+                ? '建库时 3 台设备一起参与 DKG；以后转币任意 2 台同意即可！丢了 1 台不怕冻死资产，被偷 1 台也无法盗币。'
+                : '3 devices run DKG together; later ANY 2 can sign. Losing 1 device never freezes funds, and stealing 1 never drains them.'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+    <!-- Lesson 2: Threshold Multi-Sig -->
+    {:else if activeLesson === 'multisig'}
+      <div class="rounded-3xl p-6 sm:p-8 bg-[#121826]/95 border border-violet-400/35 shadow-2xl space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
+          <div>
+            <span class="text-xs font-mono text-violet-300 uppercase tracking-wider">LESSON 02 · THRESHOLD MULTI-SIG (CO-SIGNING)</span>
+            <h3 class="text-xl sm:text-2xl font-bold mt-1">
+              {$locale === 'zh'
+                ? '什么是门限多签？为什么比 Safe 合约多签更省钱、更隐私？'
+                : 'What is Threshold Multi-Sig? Why Cheaper & More Private Than Safe?'}
+            </h3>
+          </div>
+          <span class="px-3 py-1.5 rounded-lg text-xs font-mono bg-violet-500/15 text-violet-200 border border-violet-400/35 shrink-0">
+            {$locale === 'zh' ? '每次转账/授权时触发（约 3~5 秒）' : 'Runs on Every Spend (~3–5 sec)'}
+          </span>
+        </div>
+
+        <div class="rounded-2xl p-5 bg-black/35 border border-white/10 text-sm text-white/85 leading-relaxed">
+          <strong class="text-violet-300">
+            {$locale === 'zh' ? '🎯 一句话看懂两种“多签”的区别：' : '🎯 MPC Threshold vs Smart-Contract Multisig:'}
+          </strong>
+          {#if $locale === 'zh'}
+            传统 <strong>Safe 合约多签</strong>是在链上写个智能合约来数“几个人签了字”，所以每条链都要单独花钱部署、每笔转账 Gas 更贵，还不支持比特币原生转账；而 <strong>Starlab MPC 门限多签</strong>是让 <code>t</code> 台设备在<strong>链下</strong>互相配合，<strong>直接算出一个标准单签签名</strong>！链上节点看来跟普通钱包一模一样：<strong>0 合约部署费、全网最低 Gas、全链通用、链上不暴露你的多签人数和设备地址。</strong>
+          {:else}
+            Smart-contract multisigs (like Safe) deploy a contract per chain, pay higher gas on every tx, expose signer addresses publicly, and don’t work natively on Bitcoin/Solana. <strong>Starlab MPC Threshold Signing</strong> coordinates <code>t</code> devices <strong>off-chain</strong> to produce one standard single-key signature: <strong>$0 deployment cost, lowest single-sig gas, works across EVM/BTC/SOL/SUI, and completely hides your signing policy on-chain.</strong>
+          {/if}
+        </div>
+
+        <!-- 4-step co-signing sequence -->
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-2">
+            <div class="text-xs font-mono text-violet-300">STEP 1 · PROPOSE</div>
+            <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '发起签名会话' : 'Create Signing Session'}</h4>
+            <p class="text-xs text-white/65 leading-relaxed">
+              {$locale === 'zh'
+                ? '在插件点转账、dApp 点确认，或在桌面端填好摘要后，发起方创建一个全新一次性会话 `sign_<uuid>` 并发送给房间。'
+                : 'Clicking Send, approving a dApp, or requesting a signature on Desktop opens a fresh one-time `sign_<uuid>` session.'}
+            </p>
+          </div>
+          <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-2">
+            <div class="text-xs font-mono text-violet-300">STEP 2 · REVIEW</div>
+            <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '协签设备独立核验' : 'Co-Signers Independently Review'}</h4>
+            <p class="text-xs text-white/65 leading-relaxed">
+              {$locale === 'zh'
+                ? '第二台设备弹窗展示：公链、发件地址、收款/摘要内容。如果发现异常（比如网页被劫持），点「拒绝」直接中止！'
+                : 'Your second device displays the chain, account, and exact digest. Spot anything fishy? Hit Decline to abort immediately.'}
+            </p>
+          </div>
+          <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-2">
+            <div class="text-xs font-mono text-violet-300">STEP 3 · LOCK SIGNER SET</div>
+            <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '锁定 t 台在线签发者' : 'Select Quorum (t Signers)'}</h4>
+            <p class="text-xs text-white/65 leading-relaxed">
+              {$locale === 'zh'
+                ? '例如 2-of-3 时，只要有任意 2 台设备确认 READY，发起方就锁定签名小组，未参与的第 3 台完全不用开机！'
+                : 'In a 2-of-3 vault, once any 2 devices send READY, the quorum locks in—the 3rd device can stay completely offline!'}
+            </p>
+          </div>
+          <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-2">
+            <div class="text-xs font-mono text-violet-300">STEP 4 · JOINT SIGNATURE</div>
+            <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '交互产出标准签名' : 'Output Standard Signature'}</h4>
+            <p class="text-xs text-white/65 leading-relaxed">
+              {$locale === 'zh'
+                ? '双方用各自的密钥分片交互算出完整签名（EVM 输出 65 字节低-s `r‖s‖v`，BTC 输出 BIP-340 签名），全程不拼接私钥。'
+                : 'Signers jointly compute the final signature (65-byte low-s ECDSA for EVM, BIP-340 for BTC, Ed25519 for SOL/SUI) without ever reconstructing the key.'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+    <!-- Lesson 3: Transaction Broadcast -->
+    {:else}
+      <div class="rounded-3xl p-6 sm:p-8 bg-[#121826]/95 border border-brand-accent/35 shadow-2xl space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
+          <div>
+            <span class="text-xs font-mono text-brand-accent uppercase tracking-wider">LESSON 03 · TRANSACTION LIFECYCLE & BROADCAST</span>
+            <h3 class="text-xl sm:text-2xl font-bold mt-1">
+              {$locale === 'zh'
+                ? '什么是交易广播（Broadcast）？签完名怎么真正把币转上链？'
+                : 'What is Transaction Broadcasting? How Signed Txs Land On-Chain'}
+            </h3>
+          </div>
+          <span class="px-3 py-1.5 rounded-lg text-xs font-mono bg-brand-accent/15 text-brand-accent border border-brand-accent/35 shrink-0">
+            {$locale === 'zh' ? '签名 ≠ 上链 · 广播后才写入区块' : 'Signing ≠ On-Chain · Broadcast Publishes It'}
+          </span>
+        </div>
+
+        <div class="rounded-2xl p-5 bg-black/35 border border-white/10 text-sm text-white/85 leading-relaxed">
+          <strong class="text-brand-accent">
+            {$locale === 'zh' ? '🎯 一句话白话类比：' : '🎯 Plain-English Analogy:'}
+          </strong>
+          {#if $locale === 'zh'}
+            <strong>「签名（Sign）」</strong>就像你在支票上盖好两个人的印章；此时钱还没扣，因为银行还没收到这张支票。<strong>「广播（Broadcast）」</strong>就是把这张盖好章的支票（Raw Signed Tx）递交给区块链的 <strong>RPC 节点</strong>，节点验证签名合法后全网同步并打包进区块，你的转账才算真正完成！
+          {:else}
+            <strong>Signing</strong> is like stamping a check with two required signatures—no money moves yet because the bank hasn’t received it. <strong>Broadcasting</strong> submits that stamped raw transaction to a blockchain <strong>RPC node</strong>, which verifies the signature and includes it in the next block!
+          {/if}
+        </div>
+
+        <!-- 5-stage pipeline -->
+        <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-1.5">
+            <div class="text-[11px] font-mono text-brand-neon">① BUILD 构造</div>
+            <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '自动补全参数' : 'Fill Nonce & Gas'}</h4>
+            <p class="text-xs text-white/65 leading-relaxed">
+              {$locale === 'zh'
+                ? '自动查询链上 pending nonce、估算 Gas（+20% 防失败余量）与 EIP-1559 费率，封装原生币或 ERC-20 转账数据。'
+                : 'Fetches pending nonce, estimates gas (+20% safety buffer) & EIP-1559 fees for native or ERC-20 transfers.'}
+            </p>
+          </div>
+          <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-1.5">
+            <div class="text-[11px] font-mono text-violet-300">② SIGN 多签</div>
+            <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '双端协同盖章' : 'Threshold Co-Sign'}</h4>
+            <p class="text-xs text-white/65 leading-relaxed">
+              {$locale === 'zh'
+                ? '对交易哈希执行 2-of-2 / 2-of-3 门限签名，产出标准 `(r, s, yParity)` 签名。'
+                : 'Runs 2-of-2 / 2-of-3 threshold signing over the tx sighash to get `(r, s, yParity)`.'}
+            </p>
+          </div>
+          <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-1.5">
+            <div class="text-[11px] font-mono text-amber-300">③ ASSEMBLE 打包</div>
+            <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '序列化原始交易' : 'Serialize Raw Hex'}</h4>
+            <p class="text-xs text-white/65 leading-relaxed">
+              {$locale === 'zh'
+                ? '将未签名交易与门限签名按 EIP-1559 / Legacy 规则拼装成 `0x02f8...` 原始交易十六进制串。'
+                : 'Encodes tx fields + signature into broadcast-ready `0x02f8...` raw transaction bytes.'}
+            </p>
+          </div>
+          <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-1.5">
+            <div class="text-[11px] font-mono text-brand-accent">④ BROADCAST 广播</div>
+            <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '发往 RPC 节点' : 'Push to RPC Node'}</h4>
+            <p class="text-xs text-white/65 leading-relaxed">
+              {$locale === 'zh'
+                ? '调用 `eth_sendRawTransaction`（或对应链广播接口）把原始交易推送到矿工/验证者内存池。'
+                : 'Submits via `eth_sendRawTransaction` (or chain equivalent) into the public mempool.'}
+            </p>
+          </div>
+          <div class="rounded-xl p-4 bg-white/[0.03] border border-white/10 space-y-1.5">
+            <div class="text-[11px] font-mono text-emerald-300">⑤ CONFIRM 上链</div>
+            <h4 class="font-semibold text-white text-sm">{$locale === 'zh' ? '浏览器查哈希' : 'Verify Tx Hash'}</h4>
+            <p class="text-xs text-white/65 leading-relaxed">
+              {$locale === 'zh'
+                ? '获得 Tx Hash，到 Etherscan / Arbiscan / Basescan / mempool.space / Solscan 查到 Success 即到账！'
+                : 'Check the returned Tx Hash on Etherscan / Basescan / mempool.space / Solscan until Confirmed!'}
+            </p>
+          </div>
+        </div>
+
+        <!-- Two Broadcast Modes explained clearly for beginners -->
+        <div class="grid md:grid-cols-2 gap-4 pt-1">
+          <div class="rounded-2xl p-5 bg-emerald-500/10 border border-emerald-400/30 space-y-2">
+            <div class="text-xs font-mono text-emerald-300 font-semibold">
+              {$locale === 'zh' ? '方式 A · 日常最省心（插件自动广播）' : 'MODE A · EVERYDAY (AUTO-BROADCAST IN EXTENSION)'}
+            </div>
+            <p class="text-xs sm:text-sm text-white/80 leading-relaxed">
+              {$locale === 'zh'
+                ? '在 Chrome 插件内发起转账，或连接 Uniswap / OpenSea / Aave 等 dApp 发起交易时：只要桌面端和插件都点「批准」，插件会自动完成【打包 + 调用当前网络 RPC 广播】并返回交易哈希，小白零手动操作！'
+                : 'When sending inside the Chrome Extension or using any dApp (Uniswap, Aave, OpenSea): once your co-signers approve, the extension automatically assembles and broadcasts via `eth_sendRawTransaction` and returns the live Tx Hash.'}
+            </p>
+          </div>
+          <div class="rounded-2xl p-5 bg-sky-500/10 border border-sky-400/30 space-y-2">
+            <div class="text-xs font-mono text-sky-300 font-semibold">
+              {$locale === 'zh' ? '方式 B · 高级冷签（手动 / 离线广播）' : 'MODE B · AIR-GAP / MANUAL BROADCAST'}
+            </div>
+            <p class="text-xs sm:text-sm text-white/80 leading-relaxed">
+              {$locale === 'zh'
+                ? '如果使用桌面端 / SD 卡离线模式对原始交易哈希签名：拿到最终签名拼好原始交易后，可粘贴到任意公开广播页（如 Etherscan PushTx、mempool.space/tx/push）或自建节点发出——广播只包含公开签名结果，不含任何私钥分片，绝对安全！'
+                : 'When signing raw digests via Desktop or Air-Gap SD card mode, paste the signed raw tx hex into any public broadcaster (Etherscan PushTx, mempool.space/tx/push) or your own RPC node. A signed tx reveals zero secret share info.'}
+            </p>
+          </div>
+        </div>
+      </div>
+    {/if}
+  </section>
+
   <!-- 5-STEP ANNOTATED WALKTHROUGH -->
-  <main id="guide-steps" class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 py-16 space-y-24">
+  <main id="guide-steps" class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 py-10 space-y-24">
     <!-- ==================== STEP 1 ==================== -->
     <section id="step-1" class="scroll-mt-36 space-y-8">
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-6">
@@ -742,19 +1103,19 @@
               STEP 01
             </span>
             <span class="text-xs font-mono text-white/50">
-              {$locale === 'zh' ? '耗时约 1 分钟 · 双端准备' : '~1 MIN · PREPARE BOTH DEVICES'}
+              {$locale === 'zh' ? '耗时约 1 分钟 · 双端准备与房间配对' : '~1 MIN · PREPARE & PAIR DEVICES'}
             </span>
           </div>
           <h2 class="text-2xl sm:text-4xl font-bold">
             {$locale === 'zh'
-              ? '安装双端并加入同一个配对房间'
+              ? '安装双端并加入同一个配对房间（Room ID）'
               : 'Install Both Clients & Join the Same Pairing Room'}
           </h2>
           <p class="text-white/70 max-w-3xl text-sm sm:text-base leading-relaxed">
             {#if $locale === 'zh'}
-              同时打开 <strong>Chrome 浏览器插件（starlab-wallet）</strong> 与 <strong>桌面客户端（starlab-desktop）</strong>。在插件端设置 YubiKey 或密码解锁，并在两端填写相同的 <strong>Room ID（房间号）</strong>，让两台设备通过信令通道互相发现。
+              同时打开 <strong>Chrome 浏览器插件（starlab-wallet）</strong> 与 <strong>桌面客户端（starlab-desktop）</strong>。在插件端选择 YubiKey 或密码解锁，并在两端填写相同的 <strong>Room ID（例如 <code>my-vault-2026</code>）</strong>。房间号就像你们设备之间的“暗号”，只有填了同一房间号的设备才能互相看到邀请。
             {:else}
-              Launch both the <strong>Chrome Extension (starlab-wallet)</strong> and the <strong>Starlab Desktop App</strong>. Pick YubiKey or password unlock in the extension, then enter the exact same <strong>Room ID</strong> on both devices so they can discover each other.
+              Launch both the <strong>Chrome Extension (starlab-wallet)</strong> and the <strong>Starlab Desktop App</strong>. Pick YubiKey or password unlock in the extension, then enter the exact same <strong>Room ID</strong> on both devices so they discover each other automatically.
             {/if}
           </p>
         </div>
@@ -790,22 +1151,22 @@
         <div class="space-y-2">
           <div class="flex items-center gap-3">
             <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-brand-neon/15 text-brand-neon border border-brand-neon/40">
-              STEP 02
+              STEP 02 · DKG 实操
             </span>
             <span class="text-xs font-mono text-white/50">
-              {$locale === 'zh' ? '耗时约 2 分钟 · 无助记词 DKG' : '~2 MIN · ZERO-SEED DISTRIBUTED KEYGEN'}
+              {$locale === 'zh' ? '耗时约 2 分钟 · 无助记词分布式建库' : '~2 MIN · RUN ZERO-SEED DKG'}
             </span>
           </div>
           <h2 class="text-2xl sm:text-4xl font-bold">
             {$locale === 'zh'
-              ? '发起 2-of-2 协同建库，一次生成四链密钥'
-              : 'Launch 2-of-2 Distributed Keygen Across All 4 Chains'}
+              ? '动手跑一次 DKG：2-of-2 协同生成全链密钥分片'
+              : 'Run DKG Hands-On: Generate Multi-Chain Shares Together'}
           </h2>
           <p class="text-white/70 max-w-3xl text-sm sm:text-base leading-relaxed">
             {#if $locale === 'zh'}
-              在浏览器插件端选择 <strong>Create shared wallet</strong>，设置名称与门限（例如 <strong>2 of 2</strong> 或 <strong>2 of 3</strong>）并发出邀请；在桌面端 <strong>Set up wallet → Join a wallet</strong> 一键选中邀请、输入本地加密密码即可自动完成 FROST + CGGMP24 协同密钥生成。
+              在插件端点击 <strong>Create shared wallet</strong>，填好金库名称与门限（新手先用 <strong>2 of 2</strong> 练手，大额强烈推荐 <strong>2 of 3</strong>）并发出邀请；切到桌面端 <strong>Set up wallet → Join a wallet</strong>，点击紫色邀请卡、设置桌面端独立密码、点 <strong>Join wallet</strong>，两台设备会自动跑完 DKG 并各自加密落盘！
             {:else}
-              Start a shared wallet in the Chrome Extension, configure the threshold (e.g., <strong>2 of 2</strong> or <strong>2 of 3</strong>), and click <strong>Invite devices</strong>. On Desktop, click the live invite card, set an independent local encryption password, and watch the P2P DKG ceremony finish automatically.
+              Click <strong>Create shared wallet</strong> in the Chrome Extension, set the vault name and threshold (try <strong>2 of 2</strong> first, or <strong>2 of 3</strong> for loss tolerance), and click <strong>Invite devices</strong>. On Desktop, select the live invite card, set an independent local password, and click <strong>Join wallet</strong> to run the P2P DKG ceremony.
             {/if}
           </p>
         </div>
@@ -817,7 +1178,7 @@
           src="/wallet-guide/ext-configure.webp"
           alt="Configure 2-of-2 Multi-Chain MPC Wallet in Extension"
           device="extension"
-          titleEn="2A · Extension — Configure 4-Chain Vault & Threshold"
+          titleEn="2A · Extension — Configure Vault & Threshold (Setup 1/3)"
           titleZh="2A · 插件端 — 配置金库名称与门限规则（Setup 1/3）"
           callouts={extConfigureCallouts}
         />
@@ -825,7 +1186,7 @@
           src="/wallet-guide/ext-invite.webp"
           alt="Invite Devices Waiting Room in Extension"
           device="extension"
-          titleEn="2B · Extension — Broadcast Invite & Wait for Peers"
+          titleEn="2B · Extension — Broadcast DKG Invite (Setup 2/3)"
           titleZh="2B · 插件端 — 发出邀请等待桌面端入组（Setup 2/3）"
           callouts={extInviteCallouts}
         />
@@ -845,8 +1206,8 @@
           src="/wallet-guide/desktop-dkg.webp"
           alt="Starlab Desktop Live 2-of-2 Key Generation Ceremony"
           device="desktop"
-          titleEn="2D · Desktop — Live Zero-Seed Keygen Progress"
-          titleZh="2D · 桌面端 — 实时无助记词分布式密钥生成进度"
+          titleEn="2D · Desktop — Live Zero-Seed DKG Ceremony Progress"
+          titleZh="2D · 桌面端 — 实时 DKG 分布式密钥生成进度"
           callouts={desktopDkgCallouts}
         />
       </div>
@@ -856,12 +1217,12 @@
         <span class="text-xl shrink-0">💡</span>
         <div class="text-sm text-white/80 leading-relaxed">
           <strong class="text-white">
-            {$locale === 'zh' ? '为什么没有任何 12/24 个助记词弹窗？' : 'Why didn’t it show 12 or 24 recovery words?'}
+            {$locale === 'zh' ? '小白自检：怎么确认 DKG 真正成功了？' : 'Quick Check: How do I know DKG succeeded?'}
           </strong>
           <span class="ml-1">
             {$locale === 'zh'
-              ? '在分布式密钥生成（DKG）协议中，每台设备只生成并保存自己的加密数学分片，完整私钥在任何时刻、任何内存中都从未被拼装出来，从数学根源杜绝助记词抄写与截屏泄露。'
-              : 'During Distributed Key Generation (DKG), each device independently derives only its own encrypted share. The complete private key never exists anywhere in RAM or on disk — eliminating seed-phrase theft at the cryptographic layer.'}
+              ? '两台设备都会跳转到主界面，并且你在桌面端左侧看到的 EVM 地址（例如 0xc35f...8961）和 Chrome 插件顶部显示的地址会<strong>逐字完全一模一样</strong>——证明两台设备的加密分片属于同一把数学公钥！'
+              : 'Both apps return to their main screen and show the <strong>exact same EVM address</strong> (e.g. 0xc35f...8961) character for character—proving both independent shares belong to the same group public key!'}
           </span>
         </div>
       </div>
@@ -876,19 +1237,19 @@
               STEP 03
             </span>
             <span class="text-xs font-mono text-white/50">
-              {$locale === 'zh' ? '随时随地 · 四链收款与多账户' : 'INSTANT · RECEIVE ACROSS 4 CHAINS'}
+              {$locale === 'zh' ? '随时随地 · 全链收款、切换网络与 HD 多账户' : 'INSTANT · RECEIVE ACROSS ALL CHAINS'}
             </span>
           </div>
           <h2 class="text-2xl sm:text-4xl font-bold">
             {$locale === 'zh'
-              ? '四链资产统一收款，免费派生无限子账户'
-              : 'Receive Across ETH, BTC, SOL & SUI with Public-Only HD Accounts'}
+              ? '全链统一收款，切换上百条网络 & 免费派生无限子账户'
+              : 'Receive Across Every Network & Derive Unlimited HD Accounts'}
           </h2>
           <p class="text-white/70 max-w-3xl text-sm sm:text-base leading-relaxed">
             {#if $locale === 'zh'}
-              创建完成后，Chrome 插件主界面立即展示你的 <strong>2-of-2</strong> 多链金库。查看余额、切换公链、复制收款地址或新增 <strong>Account 1 / 2 / 3</strong> 全程仅使用公钥派生，<strong>不需要唤醒其他设备，也不需要输入密码</strong>。
+              收款<strong>不需要另一台设备开机</strong>！在插件主界面顶部可随时切换 <strong>Ethereum、Arbitrum、Optimism、Base、Polygon、BNB Chain、Bitcoin、Solana、Sui</strong> 或在设置中新增任意自定义 EVM RPC；点击 <strong>Account 0 ▾</strong> 还能通过纯公钥 BIP-44/86 派生新子账户，完全不用重跑 DKG。
             {:else}
-              Once keygen completes, the Chrome Extension immediately opens your <strong>2-of-2</strong> multi-chain dashboard. Viewing balances, copying deposit addresses, or deriving extra HD accounts (<strong>Account 0, 1, 2…</strong>) is public-only — <strong>no co-signer needed just to receive funds</strong>.
+              Receiving funds <strong>never requires your co-signer online</strong>! Switch between <strong>Ethereum, Arbitrum, Optimism, Base, Polygon, Bitcoin, Solana, Sui</strong> (or add any custom EVM RPC in Settings), and derive extra accounts (<strong>Account 0, 1, 2…</strong>) via public-only BIP-44/86 math with zero extra DKG rounds.
             {/if}
           </p>
         </div>
@@ -901,17 +1262,17 @@
             alt="Starlab Chrome Extension Home Dashboard"
             device="extension"
             titleEn="3A · Extension — Multi-Chain Vault Dashboard"
-            titleZh="3A · 插件端 — 多链主界面与一键复制收款地址"
+            titleZh="3A · 插件端 — 全链主界面、网络切换与一键复制收款"
             callouts={extHomeCallouts}
           />
         </div>
 
         <div class="lg:col-span-6 space-y-6">
-          <!-- Real 4-chain derived address card from our live run -->
+          <!-- Real derived address card from our live run -->
           <div class="rounded-2xl p-6 bg-[#121826]/90 border border-white/10 space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="text-lg font-bold text-white">
-                {$locale === 'zh' ? '一个金库，自动派生四大主网标准地址' : 'One Vault → Four Native Mainnet Standards'}
+                {$locale === 'zh' ? '一个金库 → 全曲线标准地址（实测输出）' : 'One Vault → Multi-Curve Standard Addresses'}
               </h3>
               <span class="px-2.5 py-1 rounded-full text-[11px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
                 BIP-44 / BIP-86
@@ -919,12 +1280,12 @@
             </div>
             <p class="text-xs sm:text-sm text-white/65">
               {$locale === 'zh'
-                ? '以下是本次实测 2-of-2 金库（d6481e174d4f · Account 0）在桌面端与插件端同步派生出的真实四链地址：'
-                : 'Real addresses deterministically derived by our live 2-of-2 vault (Account 0) on both Desktop and Extension:'}
+                ? '同一把 2-of-2 金库（Account 0）在桌面端与插件端同步派生出的真实地址——其中 EVM 地址在以太坊、Arbitrum、Base、Optimism、Polygon、BSC 等 100+ 链完全通用：'
+                : 'Real addresses derived by our live 2-of-2 vault (Account 0) on both clients—the EVM address works across Ethereum, Arbitrum, Base, Optimism, Polygon, BSC, and 100+ EVM networks:'}
             </p>
             <div class="space-y-2.5 font-mono text-xs">
               <div class="p-3 rounded-xl bg-black/35 border border-white/8 flex items-center justify-between gap-3">
-                <span class="text-indigo-300 font-semibold shrink-0">Ethereum (EVM)</span>
+                <span class="text-indigo-300 font-semibold shrink-0">All EVM (100+)</span>
                 <span class="text-white/85 truncate">0xc35ff126...cfa226e8961</span>
                 <span class="text-[10px] px-2 py-0.5 rounded bg-white/8 text-white/60 shrink-0">CGGMP24</span>
               </div>
@@ -964,22 +1325,22 @@
         <div class="space-y-2">
           <div class="flex items-center gap-3">
             <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-brand-accent/20 text-brand-accent border border-brand-accent/40">
-              STEP 04
+              STEP 04 · 多签 + 广播实操
             </span>
             <span class="text-xs font-mono text-white/50">
-              {$locale === 'zh' ? '耗时约 5 秒 · 双设备联合批准' : '~5 SEC · THRESHOLD CO-SIGNING'}
+              {$locale === 'zh' ? '耗时约 5 秒 · 协同审批并广播上链' : '~5 SEC · CO-SIGN & BROADCAST ON-CHAIN'}
             </span>
           </div>
           <h2 class="text-2xl sm:text-4xl font-bold">
             {$locale === 'zh'
-              ? '多设备实时协同签名：单端中毒也无法转走一分钱'
-              : 'Co-Sign Transactions Across Devices — Malware Can’t Spend Alone'}
+              ? '多设备门限多签 & 一键广播上链全流程'
+              : 'Threshold Co-Signing & Broadcasting Transactions On-Chain'}
           </h2>
           <p class="text-white/70 max-w-3xl text-sm sm:text-base leading-relaxed">
             {#if $locale === 'zh'}
-              无论从桌面端发起 <strong>Sign a message</strong>，还是在浏览器连接 dApp 发起转账，系统都会把待签摘要实时推送给其他在线协签设备。<strong>达到门限（如 2-of-2）全部批准后</strong>，双方通过 WebRTC 协同输出标准链上签名（以太坊输出 65 字节低-s <code>r‖s‖v</code>，比特币输出标准 BIP-340 签名）。
+              发起转币或 dApp 交互时，只需保持任意 <code>t</code> 台设备在线（例如 2-of-2 时的浏览器插件 + 桌面端）。<strong>在一方发起签名请求 → 另一方独立核对并批准 → 交互算出原生签名 → 自动（或手动）通过 RPC 广播上链</strong>。
             {:else}
-              Whether you initiate a signing request from Desktop or approve a dApp transaction in Chrome, Starlab broadcasts the exact digest to your co-signers. Only when the threshold (e.g. <strong>2-of-2</strong>) approves do both devices interactively compute a standard on-chain signature (low-s 65-byte ECDSA for EVM, BIP-340 Schnorr for Bitcoin Taproot).
+              Whenever you send tokens or interact with a dApp, keep any <code>t</code> devices online. <strong>Propose the transaction → Independently verify & approve on co-signer → Jointly compute standard signature → Automatically (or manually) broadcast to RPC</strong>.
             {/if}
           </p>
         </div>
@@ -989,45 +1350,55 @@
         src="/wallet-guide/desktop-sign.webp"
         alt="Starlab Desktop Threshold Signing Form with Ethereum and Bitcoin"
         device="desktop"
-        titleEn="4A · Starlab Desktop — Threshold Signing Workspace"
-        titleZh="4A · 桌面端 — 门限协同签名界面（核对地址并广播请求）"
+        titleEn="4A · Starlab Desktop — Threshold Co-Signing Workspace"
+        titleZh="4A · 桌面端 — 门限协同签名界面（选链、核对地址并广播审批请求）"
         callouts={desktopSignCallouts}
       />
 
-      <!-- 3-step signing flow visual strip -->
-      <div class="grid md:grid-cols-3 gap-4">
-        <div class="rounded-2xl p-5 bg-brand-surface/65 border border-white/10">
-          <div class="text-xs font-mono text-brand-neon mb-2">01 · PROPOSE</div>
-          <h3 class="font-semibold text-white mb-1">
-            {$locale === 'zh' ? '发起方广播交易摘要' : 'Proposer Broadcasts Digest'}
-          </h3>
-          <p class="text-xs text-white/65 leading-relaxed">
-            {$locale === 'zh'
-              ? '选择链与账户，输入本地分片密码并点击 Request signature，生成一次性签名会话。'
-              : 'Choose chain & account, unlock your local share, and broadcast a fresh signing session ID.'}
-          </p>
+      <!-- Concrete step-by-step recipe for BOTH Everyday Auto-Broadcast and Manual/Offline Broadcast -->
+      <div class="grid lg:grid-cols-2 gap-6">
+        <div class="rounded-2xl p-6 bg-[#121826]/90 border border-emerald-400/30 space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="px-2.5 py-1 rounded-md text-xs font-mono bg-emerald-500/15 text-emerald-300">
+              {$locale === 'zh' ? '场景 A · 插件转币 / dApp（自动广播）' : 'FLOW A · EXTENSION SEND / DAPP (AUTO BROADCAST)'}
+            </span>
+            <span class="text-xs text-white/50">{$locale === 'zh' ? '小白日常推荐' : 'Recommended'}</span>
+          </div>
+          <ol class="space-y-3 text-sm text-white/80 list-decimal list-inside leading-relaxed">
+            {#if $locale === 'zh'}
+              <li>在 Chrome 插件选择目标网络（如 Base / Arbitrum / Ethereum），点击 <strong>Send</strong> 输入收款地址与金额，或在 Uniswap 等 dApp 点确认（插件自动估算 Gas +20% 与 EIP-1559 费率）。</li>
+              <li>插件发起门限签名会话，桌面端（或第 2 台协签设备）收到实时通知并展示待签摘要。</li>
+              <li>在协签设备核对<strong>链名与地址无误</strong>后点击批准，两台设备在 3–5 秒内通过 WebRTC 联合算出 65 字节低-s 签名。</li>
+              <li><strong>自动广播上链</strong>：插件将交易与签名打包成 Raw Tx，自动调用当前网络 RPC 的 <code>eth_sendRawTransaction</code> 广播，直接给你返回 <strong>Tx Hash</strong>，点开区块浏览器即可看到到账确认！</li>
+            {:else}
+              <li>Pick your network in the Chrome Extension (Ethereum, Arbitrum, Base, Polygon, etc.), fill in recipient & amount (or trigger a dApp swap)—the extension auto-fetches nonce, gas (+20% headroom), and EIP-1559 fees.</li>
+              <li>A fresh threshold signing session is pushed to your paired Desktop app (or second co-signer).</li>
+              <li>Verify the <strong>chain and target digest</strong> on the second device and approve; both devices compute the low-s signature in ~3–5 seconds over WebRTC.</li>
+              <li><strong>Automatic Broadcast</strong>: the extension serializes the raw signed tx and posts it via <code>eth_sendRawTransaction</code> to your RPC, returning the live <strong>Tx Hash</strong> immediately!</li>
+            {/if}
+          </ol>
         </div>
-        <div class="rounded-2xl p-5 bg-brand-surface/65 border border-white/10">
-          <div class="text-xs font-mono text-violet-300 mb-2">02 · VERIFY & CO-SIGN</div>
-          <h3 class="font-semibold text-white mb-1">
-            {$locale === 'zh' ? '另一端核验后确认批准' : 'Co-Signer Reviews & Approves'}
-          </h3>
-          <p class="text-xs text-white/65 leading-relaxed">
-            {$locale === 'zh'
-              ? '浏览器插件（或另一台电脑）弹窗展示目标链与摘要内容；任何一方拒绝都会立即中止签名。'
-              : 'The paired device displays the exact chain and payload; declining on either device immediately aborts.'}
-          </p>
-        </div>
-        <div class="rounded-2xl p-5 bg-brand-surface/65 border border-white/10">
-          <div class="text-xs font-mono text-brand-accent mb-2">03 · STANDARD SIGNATURE</div>
-          <h3 class="font-semibold text-white mb-1">
-            {$locale === 'zh' ? '输出零溢价原生链上签名' : 'Native Single-Sig Output'}
-          </h3>
-          <p class="text-xs text-white/65 leading-relaxed">
-            {$locale === 'zh'
-              ? '链上看来与普通单签完全一致，不暴露多签结构，享受全网最低 Gas 费与最高隐私性。'
-              : 'Indistinguishable from a regular single-key signature on-chain — lowest gas and full privacy.'}
-          </p>
+
+        <div class="rounded-2xl p-6 bg-[#121826]/90 border border-sky-400/30 space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="px-2.5 py-1 rounded-md text-xs font-mono bg-sky-500/15 text-sky-300">
+              {$locale === 'zh' ? '场景 B · 桌面端 / 离线签发 + 手动广播' : 'FLOW B · DESKTOP / AIR-GAP SIGN + MANUAL BROADCAST'}
+            </span>
+            <span class="text-xs text-white/50">{$locale === 'zh' ? '大额冷存储 / 进阶' : 'Cold Vault / Pro'}</span>
+          </div>
+          <ol class="space-y-3 text-sm text-white/80 list-decimal list-inside leading-relaxed">
+            {#if $locale === 'zh'}
+              <li>如上图 4A，在桌面端选择金库、<code>Account 0</code> 及目标链（如 Ethereum 或 Bitcoin Taproot）。</li>
+              <li>在 <code>Message (hex bytes)</code> 粘贴待签的 32 字节交易哈希（sighash）或 EIP-191 消息十六进制，输入本机密码后点击 <strong>Request signature</strong>。</li>
+              <li>在另一台在线设备批准（或在无网环境通过 <strong>SD 卡离线导出/导入</strong> 交换签名轮次），产出标准链上签名（EVM 为 <code>r‖s‖v</code>，BTC 为 BIP-340 签名）。</li>
+              <li><strong>手动广播</strong>：将带签名的原始交易 hex 提交至任意区块链广播入口（如 <code>etherscan.io/pushTx</code>、<code>mempool.space/tx/push</code> 或自己的节点 RPC），签名机全程无需暴露私钥！</li>
+            {:else}
+              <li>As shown in 4A above, pick your vault, <code>Account 0</code>, and target chain (Ethereum ECDSA or Bitcoin Taproot) on Starlab Desktop.</li>
+              <li>Paste the 32-byte transaction sighash (or EIP-191 digest) into <code>Message (hex bytes)</code>, unlock your local share password, and click <strong>Request signature</strong>.</li>
+              <li>Approve on your co-signer (or exchange rounds offline via the <strong>air-gapped SD card</strong> workflow) to obtain the standard on-chain signature (<code>r‖s‖v</code> for EVM, BIP-340 for BTC).</li>
+              <li><strong>Manual Broadcast</strong>: submit the assembled signed raw tx hex via any public pusher (<code>etherscan.io/pushTx</code>, <code>mempool.space/tx/push</code>) or your own RPC node.</li>
+            {/if}
+          </ol>
         </div>
       </div>
     </section>
@@ -1041,7 +1412,7 @@
               STEP 05
             </span>
             <span class="text-xs font-mono text-white/50">
-              {$locale === 'zh' ? '必做安全步骤 · 分离备份' : 'ESSENTIAL · ENCRYPTED SHARE BACKUP'}
+              {$locale === 'zh' ? '必做安全步骤 · 分离备份与小白避坑' : 'ESSENTIAL · ENCRYPTED SHARE BACKUP'}
             </span>
           </div>
           <h2 class="text-2xl sm:text-4xl font-bold">
@@ -1068,41 +1439,71 @@
         callouts={desktopBackupCallouts}
       />
 
-      <!-- Security Best Practices: 2-of-2 vs 2-of-3 -->
-      <div class="grid md:grid-cols-2 gap-6 pt-2">
-        <div class="rounded-2xl p-6 bg-brand-surface/70 border border-white/10 space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="px-2.5 py-1 rounded-md text-xs font-mono bg-brand-neon/15 text-brand-neon">
-              {$locale === 'zh' ? '日常轻便方案 · 2-of-2' : 'DAILY DRIVER · 2-OF-2'}
-            </span>
-            <span class="text-xs text-white/50">{$locale === 'zh' ? '个人常用推荐' : 'Best for Daily DeFi'}</span>
+      <!-- Beginner Do & Don't Security Checklist -->
+      <div class="rounded-2xl p-6 bg-gradient-to-br from-[#19162b] via-[#121826] to-[#111e2b] border border-white/15 space-y-4">
+        <h3 class="text-lg sm:text-xl font-bold text-white">
+          {$locale === 'zh' ? '🛡️ 小白安全实操 Checklist（转大额前花 30 秒核对）' : '🛡️ Beginner Safety Checklist (30-Second Pre-Flight)'}
+        </h3>
+        <div class="grid md:grid-cols-2 gap-4 text-xs sm:text-sm">
+          <div class="space-y-2.5 text-white/80">
+            <p><span class="text-emerald-400 font-bold mr-1.5">✓</span>{$locale === 'zh' ? '先用极小金额（例如 $1~$5 等值代币）在测试网或 L2（Base / Arbitrum）完整走通一次「收款 → 多签 → 广播上链」。' : 'Always run one tiny test transfer ($1–$5 on Base/Arbitrum or testnet) end-to-end before moving large funds.'}</p>
+            <p><span class="text-emerald-400 font-bold mr-1.5">✓</span>{$locale === 'zh' ? '不同设备使用不同的本地解锁密码，并把各设备的加密分片备份分别存放在不同离线 U 盘/SD 卡。' : 'Use distinct passwords per device and store each encrypted share backup on separate offline media.'}</p>
+            <p><span class="text-emerald-400 font-bold mr-1.5">✓</span>{$locale === 'zh' ? '大额长期资金优先创建 2-of-3 金库：第 3 台冷设备断网锁进保险箱，丢任何一台设备都不影响动用资金。' : 'Use a 2-of-3 vault for high-value holdings so losing any single device never locks your assets.'}</p>
           </div>
-          <h3 class="text-xl font-bold text-white">
-            {$locale === 'zh' ? 'Chrome 插件 + 桌面客户端' : 'Chrome Extension + Desktop App'}
-          </h3>
-          <p class="text-sm text-white/70 leading-relaxed">
-            {$locale === 'zh'
-              ? '两台设备同时在线即可 5 秒完成签发。请务必将两台设备的加密分片备份分别存放在两个不同的离线介质（例如加密 U 盘 A 与 U 盘 B）中。'
-              : 'Sign in seconds whenever both apps are open. Store each device’s encrypted backup file on separate offline media so you can always recover from a broken laptop or browser reset.'}
-          </p>
+          <div class="space-y-2.5 text-white/80">
+            <p><span class="text-brand-accent font-bold mr-1.5">✗</span>{$locale === 'zh' ? '不要把 2-of-2 两台设备的加密分片备份放进同一个云盘或同一个文件夹（否则等于变回单点风险）。' : 'Never put both devices’ backups in the same cloud folder—keep shares physically separated.'}</p>
+            <p><span class="text-brand-accent font-bold mr-1.5">✗</span>{$locale === 'zh' ? '不要在协签弹窗里不看内容就盲点批准——第二台设备的核心价值就是帮你拦截恶意合约或被篡改的地址！' : 'Never blind-approve co-signing prompts—reviewing on your second device is what stops phishing!'}</p>
+            <p><span class="text-brand-accent font-bold mr-1.5">✗</span>{$locale === 'zh' ? '忘记本机分片密码无法找回（零托管架构无“找回密码”客服），请用密码管理器（如 Bitwarden / 1Password）妥善记录。' : 'Zero-custody means nobody can reset your share password—save each device password safely in a password manager.'}</p>
+          </div>
         </div>
+      </div>
+    </section>
 
-        <div class="rounded-2xl p-6 bg-gradient-to-br from-brand-accent/15 via-brand-surface/80 to-violet-600/15 border border-brand-accent/35 space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="px-2.5 py-1 rounded-md text-xs font-mono bg-brand-accent/25 text-brand-accent">
-              {$locale === 'zh' ? '大额金库方案 · 2-of-3' : 'HIGH-VALUE VAULT · 2-OF-3'}
-            </span>
-            <span class="text-xs text-brand-accent font-medium">{$locale === 'zh' ? '★ 容错防丢推荐' : '★ Loss-Tolerant'}</span>
-          </div>
-          <h3 class="text-xl font-bold text-white">
-            {$locale === 'zh' ? 'Chrome 插件 + 常用电脑 + 备用冷设备' : 'Extension + Primary Desktop + Cold Spare'}
-          </h3>
-          <p class="text-sm text-white/75 leading-relaxed">
-            {$locale === 'zh'
-              ? '平时只用前两台协同签名；第 3 台（甚至支持 SD 卡离线 Air-Gap 模式的桌面/TUI 设备）锁进保险箱。丢一台不怕，被偷一台也无法盗币！'
-              : 'Use your first two devices day to day and keep the third offline (even air-gapped via SD card). Losing any single device never freezes your funds, and stealing one never compromises them.'}
-          </p>
-        </div>
+    <!-- WHY MPC COMPARISON TABLE -->
+    <section class="scroll-mt-32 space-y-8">
+      <div class="text-center max-w-3xl mx-auto">
+        <p class="text-xs font-mono uppercase tracking-widest text-brand-accent mb-2">
+          {$locale === 'zh' ? '横向对比' : 'SIDE-BY-SIDE COMPARISON'}
+        </p>
+        <h2 class="text-2xl sm:text-4xl font-bold">
+          {$locale === 'zh'
+            ? '传统助记词钱包 vs 单台硬件钱包 vs Starlab MPC'
+            : 'Seed Phrase Wallet vs Hardware Wallet vs Starlab MPC'}
+        </h2>
+      </div>
+
+      <div class="overflow-x-auto rounded-2xl border border-white/10 bg-[#121826]/85 shadow-2xl">
+        <table class="w-full text-left border-collapse min-w-[680px]">
+          <thead>
+            <tr class="border-b border-white/10 bg-black/30 text-xs uppercase tracking-wider font-mono">
+              <th class="p-4 text-white/60">{$locale === 'zh' ? '安全与体验维度' : 'Dimension'}</th>
+              <th class="p-4 text-white/60">{$locale === 'zh' ? '传统助记词钱包' : 'Seed Phrase Wallet'}</th>
+              <th class="p-4 text-white/60">{$locale === 'zh' ? '单台硬件钱包 (Ledger)' : 'Single Hardware (Ledger)'}</th>
+              <th class="p-4 text-brand-neon bg-brand-neon/5">
+                ★ {$locale === 'zh' ? 'Starlab MPC (2-of-2 / 2-of-3)' : 'Starlab MPC (2-of-2 / 2-of-3)'}
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/10 text-sm">
+            {#each comparisons as row}
+              <tr class="hover:bg-white/[0.02] transition">
+                <td class="p-4 font-semibold text-white">
+                  {$locale === 'zh' ? row.metricZh : row.metricEn}
+                </td>
+                <td class="p-4 text-white/60">
+                  {$locale === 'zh' ? row.seedZh : row.seedEn}
+                </td>
+                <td class="p-4 text-white/70">
+                  {$locale === 'zh' ? row.hwZh : row.hwEn}
+                </td>
+                <td class="p-4 text-white font-medium bg-brand-neon/[0.04]">
+                  <span class="text-emerald-400 mr-1.5">✓</span>
+                  {$locale === 'zh' ? row.mpcZh : row.mpcEn}
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
     </section>
 
@@ -1152,13 +1553,13 @@
         <div class="relative z-10 max-w-2xl mx-auto space-y-4">
           <h2 class="text-2xl sm:text-4xl font-extrabold">
             {$locale === 'zh'
-              ? '现在就升级你的加密资产安全等级'
+              ? '现在就升级你的全链资产安全等级'
               : 'Ready to Retire Your Paper Seed Phrases?'}
           </h2>
           <p class="text-sm sm:text-base text-white/75">
             {$locale === 'zh'
-              ? '完全开源、零托管、支持四大公链。下载桌面端与浏览器插件，5 分钟拥有你自己的分布式 MPC 金库。'
-              : '100% open source, zero cloud custody, and native support for ETH, BTC Taproot, SOL & SUI. Download both clients and set up your vault in 5 minutes.'}
+              ? '完全开源、零托管、支持与 Ledger 同级的全主流公链生态。下载桌面端与浏览器插件，5 分钟跑通 DKG、多签与广播！'
+              : '100% open source, zero cloud custody, and Ledger-level multi-chain coverage. Download both clients and launch your threshold vault in 5 minutes.'}
           </p>
           <div class="flex flex-wrap justify-center gap-3 pt-2">
             <a
