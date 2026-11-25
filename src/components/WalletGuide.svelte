@@ -52,9 +52,9 @@
 
   <!-- HERO SECTION -->
   <section class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pt-14 md:pt-20 pb-16">
-    <div class="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+    <div class="grid lg:grid-cols-12 gap-8 lg:gap-10 items-center">
       <!-- Hero copy -->
-      <div class="lg:col-span-6 space-y-6">
+      <div class="lg:col-span-5 space-y-6">
         <div
           class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-brand-neon/30 text-xs font-mono text-brand-neon tracking-wide"
         >
@@ -131,19 +131,19 @@
         </div>
       </div>
 
-      <!-- Hero visual showcase: live Desktop + Extension pair -->
-      <div class="lg:col-span-6">
-        <div class="relative">
-          <div class="rounded-2xl border border-white/15 bg-[#101626] shadow-[0_30px_90px_rgba(0,0,0,0.65)] overflow-hidden">
-            <div class="flex items-center justify-between px-4 py-2.5 bg-black/40 border-b border-white/10">
-              <div class="flex items-center gap-1.5">
-                <span class="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></span>
-                <span class="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></span>
-                <span class="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></span>
-                <span class="ml-2 text-xs font-mono text-white/60">Starlab Desktop · 2-of-2 Co-Signer</span>
+      <!-- Hero visual showcase: side-by-side non-overlapping Desktop + Extension GIFs -->
+      <div class="lg:col-span-7">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+          <div class="sm:col-span-8 rounded-2xl border border-white/15 bg-[#101626] shadow-[0_24px_70px_rgba(0,0,0,0.65)] overflow-hidden">
+            <div class="flex items-center justify-between gap-2 px-3.5 py-2.5 bg-black/40 border-b border-white/10">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#ff5f56] shrink-0"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-[#ffbd2e] shrink-0"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-[#27c93f] shrink-0"></span>
+                <span class="ml-1.5 text-xs font-mono text-white/65 truncate">Starlab Desktop</span>
               </div>
-              <span class="px-2 py-0.5 rounded-full text-[11px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                ● LIVE GIF · 0xc35f...8961
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 shrink-0">
+                ● LIVE GIF
               </span>
             </div>
             <img
@@ -153,12 +153,10 @@
             />
           </div>
 
-          <div
-            class="hidden sm:block sm:w-[210px] md:w-[235px] lg:w-[215px] xl:w-[240px] sm:absolute -bottom-8 -right-4 rounded-2xl border border-violet-400/40 bg-[#14182a] shadow-[0_25px_70px_rgba(0,0,0,0.85)] overflow-hidden ring-1 ring-white/10"
-          >
-            <div class="px-3 py-1.5 bg-violet-600/25 border-b border-white/10 flex items-center justify-between">
-              <span class="text-[10px] font-mono text-violet-200">Chrome Extension</span>
-              <span class="text-[10px] font-mono text-emerald-300">● LIVE GIF</span>
+          <div class="sm:col-span-4 max-w-[260px] sm:max-w-none mx-auto w-full rounded-2xl border border-violet-400/35 bg-[#14182a] shadow-[0_24px_70px_rgba(0,0,0,0.75)] overflow-hidden ring-1 ring-white/10">
+            <div class="px-3 py-2 bg-violet-600/25 border-b border-white/10 flex items-center justify-between gap-2">
+              <span class="text-[11px] font-mono text-violet-200 truncate">Extension</span>
+              <span class="text-[10px] font-mono text-emerald-300 shrink-0">● LIVE GIF</span>
             </div>
             <img
               src="/wallet-guide/hero-ext-flow.gif"
