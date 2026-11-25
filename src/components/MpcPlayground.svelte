@@ -38,6 +38,7 @@
   let loadingDkg = false;
   let dkgError = '';
   let expandedLogIdx: number | null = null;
+  let showRawDkgCards = false;
 
   // Signing state
   let signChain: 'bitcoin' | 'solana' | 'sui' | 'ethereum' = 'bitcoin';
@@ -443,46 +444,32 @@
   <div
     class="rounded-3xl border border-brand-neon/35 bg-gradient-to-br from-[#10182b] via-[#13192e] to-[#1a132c] shadow-[0_25px_80px_rgba(0,0,0,0.65)] overflow-hidden"
   >
-    <!-- Top Banner -->
-    <div class="px-6 sm:px-8 py-6 border-b border-white/10 bg-black/30 space-y-4">
+    <!-- Compact Studio Toolbar Header -->
+    <div class="px-5 sm:px-6 py-3.5 border-b border-white/10 bg-black/30 space-y-2.5">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex flex-wrap items-center gap-2.5">
+        <div class="flex flex-wrap items-center gap-2">
           <span
-            class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono bg-brand-neon/15 text-brand-neon border border-brand-neon/40"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-brand-neon/15 text-brand-neon border border-brand-neon/40"
           >
             <span class="w-2 h-2 rounded-full bg-brand-neon animate-pulse"></span>
-            LIVE RUST WASM SANDBOX · @stars-labs/core-wasm
+            LIVE RUST WASM · @stars-labs/core-wasm
           </span>
-          <span class="px-2.5 py-1 rounded-full text-[11px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
-            {$locale === 'zh' ? '100% 浏览器本地真机算力 · 零安装' : '100% Local Browser Crypto · Zero Install'}
-          </span>
-        </div>
-        {#if vault}
-          <span class="text-xs font-mono text-white/60">
-            {vault.threshold}-of-{vault.total} · {vault.ecdsaGroupPubkey ? '3 Curves (ECDSA + Taproot + Ed25519)' : '2 Curves (Taproot + Ed25519)'} · Epoch #{vault.reshareEpoch}
-          </span>
-        {/if}
-      </div>
-
-      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-        <div class="space-y-1.5 max-w-2xl">
-          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-            {$locale === 'zh'
-              ? '免安装在线真机体验：在浏览器里直接跑通全部 MPC 功能'
-              : 'Interactive Live WASM Sandbox — Try Every MPC Feature Right Here'}
-          </h2>
-          <p class="text-xs sm:text-sm text-white/70 leading-relaxed">
-            {$locale === 'zh'
-              ? '这里加载的正是 Starlab Chrome 插件同款 Rust 编译 WASM 引擎（FROST 3.0 + CGGMP24）。你可以直接在当前页面亲手跑通：2 轮 DKG 建库 → 全链 HD 派生 → BTC / SOL / SUI / 以太坊门限多签与 ecrecover 验签 → 单设备防盗拦截 → 丢设备无换地址 Reshare → AES-256-GCM 加密备份！'
-              : 'Powered by the exact same Rust-compiled WASM binary shipped in Starlab Extension (FROST 3.0 + CGGMP24). Execute real 2-round DKG, BIP-44/86 HD derivation, BTC/SOL/SUI/EVM threshold signing + ecrecover verification, 1-device attack proofs, address-preserving resharing, and AES-256-GCM keystore backups live in your browser!'}
-          </p>
+          {#if vault}
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
+              {vault.threshold}-of-{vault.total} · {vault.ecdsaGroupPubkey ? '3 Curves (ECDSA + Taproot + Ed25519)' : '2 Curves'} · Epoch #{vault.reshareEpoch}
+            </span>
+          {:else}
+            <span class="text-[11px] font-mono text-white/55 hidden sm:inline">
+              {$locale === 'zh' ? '100% 浏览器本地真机算力 · 零安装' : '100% Local Browser Crypto · Zero Install'}
+            </span>
+          {/if}
         </div>
 
-        <!-- Quick DKG Launcher Bar -->
-        <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+        <!-- Quick DKG Launcher Controls -->
+        <div class="flex flex-wrap items-center gap-2 shrink-0">
           <select
             bind:value={preset}
-            class="px-3 py-2.5 rounded-xl bg-black/50 border border-white/15 text-xs sm:text-sm font-mono text-white outline-none focus:border-brand-neon"
+            class="px-3 py-1.5 rounded-xl bg-black/50 border border-white/15 text-xs font-mono text-white outline-none focus:border-brand-neon"
             aria-label="Threshold configuration"
           >
             <option value="2-3">{$locale === 'zh' ? '2-of-3 (全3曲线·含ETH CGGMP24 ⭐)' : '2-of-3 (All 3 Curves + EVM ⭐)'}</option>
@@ -493,21 +480,21 @@
             type="button"
             disabled={loadingDkg}
             on:click={handleRunDkg}
-            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-accent to-violet-600 hover:brightness-110 disabled:opacity-60 text-white font-bold text-xs sm:text-sm shadow-[0_8px_25px_rgba(233,69,96,0.4)] transition cursor-pointer"
+            class="px-4 py-1.5 rounded-xl bg-gradient-to-r from-brand-accent to-violet-600 hover:brightness-110 disabled:opacity-60 text-white font-bold text-xs shadow-[0_6px_20px_rgba(233,69,96,0.35)] transition cursor-pointer"
           >
             {#if loadingDkg}
-              {$locale === 'zh' ? '正在加载 WASM 并执行 2 轮 DKG…' : 'Loading WASM & Running 2-Round DKG…'}
-            {:else if vault}
-              {$locale === 'zh' ? '⚡ 重新生成新金库' : '⚡ Generate Fresh Vault'}
+              {$locale === 'zh' ? 'WASM 计算中…' : 'Running WASM…'}
+            {:else if dkgSnap || vault}
+              {$locale === 'zh' ? '⚡ 重新生成新金库' : '⚡ Fresh Vault'}
             {:else}
-              {$locale === 'zh' ? '⚡ 一键启动真机 WASM 建库' : '⚡ Launch Live WASM Vault'}
+              {$locale === 'zh' ? '⚡ 启动真机建库' : '⚡ Launch Vault'}
             {/if}
           </button>
         </div>
       </div>
 
       {#if dkgError}
-        <div class="p-3 rounded-xl bg-red-500/15 border border-red-400/40 text-xs text-red-200 font-mono">
+        <div class="p-2.5 rounded-xl bg-red-500/15 border border-red-400/40 text-xs text-red-200 font-mono">
           {dkgError}
         </div>
       {/if}
@@ -535,7 +522,7 @@
     </div>
 
     <!-- Main Interactive Body -->
-    <div class="p-6 sm:p-8">
+    <div class="p-4 sm:p-6">
       {#if !dkgSnap && !vault}
         <!-- Empty Welcome Prompt -->
         <div class="py-10 text-center max-w-xl mx-auto space-y-5">
@@ -614,96 +601,109 @@
             onStepBackFresh={handleDkgStepBackFresh}
           />
 
-          <!-- Protocol Round Logs (populate live as each WASM round runs!) -->
-          {#if dkgSnap.logs.length > 0}
-            <div class="grid md:grid-cols-2 gap-3">
-              {#each dkgSnap.logs as log, idx}
-                <div class="rounded-2xl p-4 bg-black/35 border border-white/10 space-y-2">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="text-xs font-bold text-brand-neon">
-                      {$locale === 'zh' ? log.titleZh : log.titleEn}
-                    </span>
-                    <span class="text-[11px] font-mono text-emerald-300 shrink-0">
-                      {log.elapsedMs.toFixed(1)} ms
-                    </span>
+          <!-- Collapsible Raw Protocol Logs & 3-Curve Isolated Share Cards (Keeps Tab 01 1-Screen Compact!) -->
+          <div class="rounded-2xl border border-white/10 bg-black/25 overflow-hidden">
+            <button
+              type="button"
+              on:click={() => (showRawDkgCards = !showRawDkgCards)}
+              class="w-full px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-white/80 hover:bg-white/[0.03] transition cursor-pointer"
+            >
+              <span>
+                📊 {$locale === 'zh'
+                  ? `底层报文 Hex 摘要 (${dkgSnap.logs.length} 轮) & 各设备 ${dkgSnap.devices[0]?.ecdsaKeyShare ? '3' : '2'} 份独立分片隔离详情`
+                  : `Raw Round Hex (${dkgSnap.logs.length} steps) & Isolated Per-Device Share Cards`}
+              </span>
+              <span class="text-brand-neon">
+                {showRawDkgCards ? ($locale === 'zh' ? '收起 ▲' : 'Collapse ▲') : ($locale === 'zh' ? '展开详细卡片 ▼' : 'Expand Cards ▼')}
+              </span>
+            </button>
+
+            {#if showRawDkgCards}
+              <div class="p-4 border-t border-white/10 space-y-5">
+                {#if dkgSnap.logs.length > 0}
+                  <div class="grid md:grid-cols-2 gap-3">
+                    {#each dkgSnap.logs as log, idx}
+                      <div class="rounded-2xl p-4 bg-black/35 border border-white/10 space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                          <span class="text-xs font-bold text-brand-neon">
+                            {$locale === 'zh' ? log.titleZh : log.titleEn}
+                          </span>
+                          <span class="text-[11px] font-mono text-emerald-300 shrink-0">
+                            {log.elapsedMs.toFixed(1)} ms
+                          </span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] font-mono text-white/55">
+                          <span>Wire: {log.bytesExchanged > 0 ? `${log.bytesExchanged} bytes` : 'local verify'}</span>
+                          <button
+                            type="button"
+                            on:click={() => (expandedLogIdx = expandedLogIdx === idx ? null : idx)}
+                            class="text-violet-300 hover:underline cursor-pointer"
+                          >
+                            {expandedLogIdx === idx ? ($locale === 'zh' ? '收起报文' : 'Hide hex') : ($locale === 'zh' ? '查看真实 Hex' : 'Inspect Hex')}
+                          </button>
+                        </div>
+                        {#if expandedLogIdx === idx}
+                          <div class="p-2.5 rounded-lg bg-black/60 border border-white/10 font-mono text-[10px] text-white/75 break-all">
+                            {log.sampleHex}
+                          </div>
+                        {/if}
+                      </div>
+                    {/each}
                   </div>
-                  <div class="flex items-center justify-between text-[11px] font-mono text-white/55">
-                    <span>Wire: {log.bytesExchanged > 0 ? `${log.bytesExchanged} bytes` : 'local verify'}</span>
-                    <button
-                      type="button"
-                      on:click={() => (expandedLogIdx = expandedLogIdx === idx ? null : idx)}
-                      class="text-violet-300 hover:underline cursor-pointer"
+                {/if}
+
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {#each dkgSnap.devices as dev}
+                    <div
+                      class="rounded-2xl p-4 border {dev.compromised
+                        ? 'border-red-500/40 bg-red-950/20 opacity-75'
+                        : 'border-white/12 bg-white/[0.03]'} space-y-2.5"
                     >
-                      {expandedLogIdx === idx ? ($locale === 'zh' ? '收起报文' : 'Hide hex') : ($locale === 'zh' ? '查看真实 Hex' : 'Inspect Hex')}
-                    </button>
-                  </div>
-                  {#if expandedLogIdx === idx}
-                    <div class="p-2.5 rounded-lg bg-black/60 border border-white/10 font-mono text-[10px] text-white/75 break-all">
-                      {log.sampleHex}
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 font-semibold text-sm text-white">
+                          <span>{dev.roleIcon}</span>
+                          <span>#{dev.index} {$locale === 'zh' ? dev.labelZh : dev.labelEn}</span>
+                        </div>
+                        {#if dev.compromised}
+                          <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/20 text-red-300 border border-red-400/40">
+                            {$locale === 'zh' ? '已作废/丢失' : 'REVOKED'}
+                          </span>
+                        {:else}
+                          <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                            {$locale === 'zh' ? (vault ? '在线持有' : '计算中') : vault ? 'ACTIVE' : 'COMPUTING'}
+                          </span>
+                        {/if}
+                      </div>
+
+                      <div class="space-y-1 text-[11px] font-mono">
+                        <div class="text-white/50">
+                          {$locale === 'zh' ? '根随机熵 (RootSecret):' : 'Local RootSecret:'}
+                          <span class="text-white/80 ml-1">{dev.rootSecretHex.slice(0, 14)}…</span>
+                        </div>
+                        <div class="text-white/50">
+                          {$locale === 'zh' ? '当前分片指纹 (唯一):' : 'Share Fingerprint:'}
+                          <span class="text-brand-neon ml-1">{dev.shareFingerprint}</span>
+                        </div>
+                      </div>
+
+                      <div class="flex flex-wrap gap-1.5 pt-1">
+                        {#if dev.ecdsaKeyShare}
+                          <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-500/15 text-indigo-300 border border-indigo-400/30">
+                            #1 secp256k1-ecdsa
+                          </span>
+                        {/if}
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-400/30">
+                          #2 secp256k1-tr
+                        </span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-teal-500/15 text-teal-300 border border-teal-400/30">
+                          #3 ed25519
+                        </span>
+                      </div>
                     </div>
-                  {/if}
+                  {/each}
                 </div>
-              {/each}
-            </div>
-          {/if}
-
-          <!-- Virtual Devices Grid -->
-          <div class="space-y-3">
-            <h4 class="text-sm font-bold text-white/90">
-              {$locale === 'zh'
-                ? `各设备独立持有的分片隔离视图（每个设备存 ${dkgSnap.devices[0]?.ecdsaKeyShare ? '3' : '2'} 份独立分片）`
-                : `Isolated Per-Device Key Shares (${dkgSnap.devices[0]?.ecdsaKeyShare ? '3' : '2'} Curves Per Device)`}
-            </h4>
-            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {#each dkgSnap.devices as dev}
-                <div
-                  class="rounded-2xl p-4 border {dev.compromised
-                    ? 'border-red-500/40 bg-red-950/20 opacity-75'
-                    : 'border-white/12 bg-white/[0.03]'} space-y-2.5"
-                >
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2 font-semibold text-sm text-white">
-                      <span>{dev.roleIcon}</span>
-                      <span>#{dev.index} {$locale === 'zh' ? dev.labelZh : dev.labelEn}</span>
-                    </div>
-                    {#if dev.compromised}
-                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-red-500/20 text-red-300 border border-red-400/40">
-                        {$locale === 'zh' ? '已作废/丢失' : 'REVOKED'}
-                      </span>
-                    {:else}
-                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                        {$locale === 'zh' ? (vault ? '在线持有' : '计算中') : vault ? 'ACTIVE' : 'COMPUTING'}
-                      </span>
-                    {/if}
-                  </div>
-
-                  <div class="space-y-1 text-[11px] font-mono">
-                    <div class="text-white/50">
-                      {$locale === 'zh' ? '根随机熵 (RootSecret):' : 'Local RootSecret:'}
-                      <span class="text-white/80 ml-1">{dev.rootSecretHex.slice(0, 14)}…</span>
-                    </div>
-                    <div class="text-white/50">
-                      {$locale === 'zh' ? '当前分片指纹 (唯一):' : 'Share Fingerprint:'}
-                      <span class="text-brand-neon ml-1">{dev.shareFingerprint}</span>
-                    </div>
-                  </div>
-
-                  <div class="flex flex-wrap gap-1.5 pt-1">
-                    {#if dev.ecdsaKeyShare}
-                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-500/15 text-indigo-300 border border-indigo-400/30">
-                        #1 secp256k1-ecdsa
-                      </span>
-                    {/if}
-                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-400/30">
-                      #2 secp256k1-tr
-                    </span>
-                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-teal-500/15 text-teal-300 border border-teal-400/30">
-                      #3 ed25519
-                    </span>
-                  </div>
-                </div>
-              {/each}
-            </div>
+              </div>
+            {/if}
           </div>
         </div>
 

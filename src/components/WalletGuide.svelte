@@ -89,6 +89,13 @@
     activeShotIndex = (activeShotIndex + 1) % currentShots.length;
   }
 
+  function handleWindowKeydown(e: KeyboardEvent) {
+    if ($walletWorkspace !== 'guides') return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (e.key === 'ArrowLeft') prevShot();
+    if (e.key === 'ArrowRight') nextShot();
+  }
+
   function toggleFaq(index: number) {
     openFaq = openFaq === index ? null : index;
   }
@@ -114,6 +121,8 @@
     { id: 'faq', icon: '❓', zh: '深度问答 FAQ', en: 'FAQ', badge: `${faqs.length}` },
   ];
 </script>
+
+<svelte:window on:keydown={handleWindowKeydown} />
 
 <div class="relative min-h-screen bg-brand-bg text-white pt-16 overflow-x-clip">
   <!-- Ambient radial glow backdrop -->
@@ -380,6 +389,33 @@
               </div>
             </div>
           {/each}
+        </div>
+
+        <!-- Open-Source ESP32-S3 Hardware Share Callout -->
+        <div class="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-emerald-500/10 via-[#111a2e] to-cyan-500/10 border border-emerald-400/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
+                OPEN HARDWARE · SLHW v1
+              </span>
+              <span class="text-xs font-bold text-white">
+                {$locale === 'zh' ? '🔌 ¥30 开源 ESP32-S3 物理硬件分片（Starlab Key）' : '🔌 <$5 Open-Source ESP32-S3 Hardware Share (Starlab Key)'}
+              </span>
+            </div>
+            <p class="text-xs text-white/70 leading-relaxed">
+              {$locale === 'zh'
+                ? '不买闭源硬件钱包也能拥有物理按键确认！只需一块市售 ESP32-S3 开发板刷入开源固件，作为 2-of-3 中的独立物理分片节点——电脑中木马也绕不过实体按键，代码 100% 开源可审计。'
+                : 'Build a physical button-confirmed MPC hardware share on any off-the-shelf <$5 ESP32-S3 board — malware on your PC can never press the physical BOOT button, and 100% of firmware & protocol code is open source.'}
+            </p>
+          </div>
+          <a
+            href="https://github.com/stars-labs/starlab-mpc/blob/main/docs/ESP32_HARDWARE_SHARE.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/45 text-emerald-200 text-xs font-mono font-bold shrink-0 transition"
+          >
+            {$locale === 'zh' ? '查看 ESP32 固件与协议' : 'ESP32 Firmware & Docs'} &nearr;
+          </a>
         </div>
 
         <div class="overflow-x-auto rounded-2xl border border-white/10 bg-[#121826]/90 shadow-xl">
