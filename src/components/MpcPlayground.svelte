@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { onDestroy, onMount } from 'svelte';
   import { locale } from '../lib/i18n';
+  import MpcFlowVisualizer from './MpcFlowVisualizer.svelte';
   import {
     runLiveDkg,
     deriveVaultAccounts,
@@ -8,11 +10,13 @@
     runLiveReshare,
     encryptDeviceBackup,
     decryptDeviceBackup,
+    buildSingleDeviceAttackScene,
     type SandboxVault,
     type DerivedAccountRow,
     type SigningResult,
     type ReshareOutcome,
     type EncryptedBackupEnvelope,
+    type FlowScene,
   } from '../lib/mpcSandbox';
 
   type TabId = 'dkg' | 'accounts' | 'sign' | 'reshare' | 'backup';
@@ -37,6 +41,8 @@
   let signingBusy = false;
   let evmProgress: { round: number; frames: number; bytes: number; label: string } | null = null;
   let signResult: SigningResult | null = null;
+  let activeSignScene: FlowScene | null = null;
+  let liveEvmBusyScene: FlowScene | null = null;
   let signError = '';
 
   // Reshare state
@@ -54,6 +60,32 @@
   let restoreStatus: { ok: boolean; msg: string } | null = null;
 
   let copiedText = '';
+  let sectionEl: HTMLElement | null = null;
+  let autoBooted = false;
+  let observer: IntersectionObserver | null = null;
+
+  onMount(() => {
+    if (typeof IntersectionObserver !== 'undefined' && sectionEl) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (!autoBooted && entries.some((e) => e.isIntersecting)) {
+            autoBooted = true;
+            observer?.disconnect();
+            handleRunDkg();
+          }
+        },
+        { rootMargin: '250px 0px' },
+      );
+      observer.observe(sectionEl);
+    } else if (!autoBooted) {
+      autoBooted = true;
+      handleRunDkg();
+    }
+  });
+
+  onDestroy(() => {
+    observer?.disconnect();
+  });
 
   function copyText(val: string) {
     navigator.clipboard?.writeText(val);
@@ -73,11 +105,14 @@
     loadingDkg = true;
     dkgError = '';
     signResult = null;
+    activeSignScene = null;
+    liveEvmBusyScene = null;
     signError = '';
     reshareResult = null;
     reshareError = '';
     encryptedBackup = null;
     restoreStatus = null;
+    activeTab = 'dkg';
     try {
       const [t, n] = presetNumbers(preset);
       // Let UI paint spinner before synchronous WASM DKG
@@ -125,13 +160,75 @@
     handleSign();
   }
 
+  function buildLiveEvmBusyScene(v: SandboxVault, signers: number[]): FlowScene {
+    const active = [...signers].sort((a, b) => a - b).slice(0, v.threshold);
+    const [a, b] = active;
+    const notes: FlowScene['stages'][number]['nodeNotes'] = {};
+    for (const d of v.devices) {
+      notes[d.index] = active.includes(d.index)
+        ? { zh: '🔐 实时计算 3072-bit Paillier 同态密文…', en: '🔐 Computing Paillier MtA Live…', tone: 'pink' }
+        : { zh: '💤 离线待机（无需参与）', en: '💤 Offline (Idle)', tone: 'amber' };
+    }
+    return {
+      kind: 'sign',
+      runId: Date.now(),
+      stages: [
+        {
+          key: 'evm-busy',
+          stepNum: 0,
+          titleZh: `正在 Web Worker 中真实运行 CGGMP24 门限 ECDSA（设备 #${a} ↔ #${b} 交互中）…`,
+          titleEn: `Running Real CGGMP24 Threshold ECDSA in Web Worker (Devices #${a} ↔ #${b})…`,
+          explainZh:
+            '两台设备正在通过 3072-bit Paillier 同态加密和零知识证明协同计算以太坊原生签名，全程不暴露任何分片秘密（预计约 15 秒完成）。',
+          explainEn:
+            'Both devices are actively exchanging 3072-bit Paillier homomorphic ciphertexts + ZK proofs to co-sign a native Ethereum ECDSA signature (~15s).',
+          durationMs: 2200,
+          nodeNotes: notes,
+          packets: [
+            {
+              id: 'live-mta-ab',
+              from: a,
+              to: b,
+              tag: 'PAILLIER MtA',
+              labelZh: `同态密文 #${a}→#${b}`,
+              labelEn: `Paillier MtA #${a}→#${b}`,
+              bytes: 8400,
+              hexPreview: 'cggmp24 · computing real CBOR frame…',
+              tone: 'pink',
+            },
+            {
+              id: 'live-mta-ba',
+              from: b,
+              to: a,
+              tag: 'ZK PROOF',
+              labelZh: `零知识证明 #${b}→#${a}`,
+              labelEn: `ZK Proof #${b}→#${a}`,
+              bytes: 8400,
+              hexPreview: 'paillier-zk · verifying affine proof…',
+              tone: 'violet',
+              stagger: 0.2,
+            },
+          ],
+          centerStatus: {
+            titleZh: 'Web Worker 真机运算中',
+            titleEn: 'Web Worker Running',
+            detail: 'CGGMP24 3072-bit Paillier…',
+            tone: 'pink',
+          },
+        },
+      ],
+    };
+  }
+
   async function handleSign() {
     if (!vault) return;
     signError = '';
     signResult = null;
     evmProgress = null;
+    liveEvmBusyScene = null;
 
     if (selectedSigners.length < vault.threshold) {
+      activeSignScene = buildSingleDeviceAttackScene(vault, selectedSigners);
       signError =
         $locale === 'zh'
           ? `🚫 密码学拦截：当前仅勾选 ${selectedSigners.length} 台设备，低于门限要求（至少需要 ${vault.threshold} 台）！单个分片不包含完整私钥，绝无可能伪造出合法签名。`
@@ -142,6 +239,7 @@
     signingBusy = true;
     try {
       if (signChain === 'ethereum') {
+        liveEvmBusyScene = buildLiveEvmBusyScene(vault, selectedSigners);
         signResult = await runEvmCggmp24Signing(
           vault,
           signAccount,
@@ -151,14 +249,18 @@
             evmProgress = p;
           },
         );
+        liveEvmBusyScene = null;
+        activeSignScene = signResult.signScene;
       } else {
         await new Promise((r) => setTimeout(r, 20));
         signResult = await runFrostSigning(vault, signChain, signAccount, selectedSigners, signMessage);
+        activeSignScene = signResult.signScene;
       }
     } catch (e: any) {
       signError = e?.message || String(e);
     } finally {
       signingBusy = false;
+      liveEvmBusyScene = null;
       evmProgress = null;
     }
   }
@@ -233,7 +335,7 @@
   $: canReshareNow = Boolean(vault && survivingCount > vault.threshold);
 </script>
 
-<section id="playground" class="scroll-mt-36 space-y-6">
+<section id="playground" bind:this={sectionEl} class="scroll-mt-36 space-y-6">
   <div
     class="rounded-3xl border border-brand-neon/35 bg-gradient-to-br from-[#10182b] via-[#13192e] to-[#1a132c] shadow-[0_25px_80px_rgba(0,0,0,0.65)] overflow-hidden"
   >
@@ -341,8 +443,8 @@
           </h3>
           <p class="text-sm text-white/65 leading-relaxed">
             {$locale === 'zh'
-              ? '完全在你的浏览器内存里运行真实 Rust 密码学，不需要注册账号、不需要下载软件、不上传任何数据到服务器。'
-              : 'Runs real Rust cryptography inside your browser memory — zero signup, zero download, zero server custody.'}
+              ? '完全在你的浏览器内存里运行真实 Rust 密码学，并同步以可视化动画一步步展示：本地随机种子隔离 → 承诺广播 → 加密分片交换 → 协同多签与防盗拦截，零基础也能一眼看懂！'
+              : 'Runs real Rust cryptography locally in your browser with step-by-step live network animations: local seed isolation → commitment broadcasts → encrypted share exchange → threshold signing & attack blocks!'}
           </p>
           <div class="flex flex-wrap justify-center gap-3 pt-1">
             <button
@@ -393,6 +495,9 @@
               </button>
             </div>
           </div>
+
+          <!-- Live Interactive Protocol Flow Animation -->
+          <MpcFlowVisualizer scene={vault.dkgScene} devices={vault.devices} />
 
           <!-- Protocol Round Logs -->
           <div class="grid md:grid-cols-2 gap-3">
@@ -588,7 +693,14 @@
 
       {:else if activeTab === 'sign'}
         <!-- ==================== TAB 3: THRESHOLD SIGNING & ATTACK PROOF ==================== -->
-        <div class="grid lg:grid-cols-12 gap-6">
+        <div class="space-y-6">
+          {#if liveEvmBusyScene}
+            <MpcFlowVisualizer scene={liveEvmBusyScene} devices={vault.devices} loopForever={true} />
+          {:else if activeSignScene}
+            <MpcFlowVisualizer scene={activeSignScene} devices={vault.devices} />
+          {/if}
+
+          <div class="grid lg:grid-cols-12 gap-6">
           <!-- Left controls -->
           <div class="lg:col-span-6 space-y-4">
             <div class="space-y-2">
@@ -783,6 +895,7 @@
               </div>
             {/if}
           </div>
+          </div>
         </div>
 
       {:else if activeTab === 'reshare'}
@@ -840,6 +953,8 @@
           {/if}
 
           {#if reshareResult}
+            <MpcFlowVisualizer scene={reshareResult.reshareScene} devices={vault.devices} />
+
             <div class="rounded-2xl p-5 bg-emerald-500/10 border border-emerald-400/35 space-y-3">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <span class="font-bold text-emerald-300 text-sm">
