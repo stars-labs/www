@@ -749,91 +749,108 @@
             bind:selectedAccount={hdVizAccount}
           />
 
-          <div class="space-y-3">
-            {#each accounts as row}
-              <div class="rounded-2xl p-4 bg-black/35 border border-white/10 space-y-3">
-                <div class="flex items-center justify-between">
-                  <span class="px-2.5 py-1 rounded-lg bg-white/10 text-xs font-mono font-bold text-white">
-                    Account #{row.account}
-                  </span>
+          <!-- Compact Active Account Address Selector (No Infinite Vertical Growth!) -->
+          {#if accounts[hdVizAccount]}
+            {@const row = accounts[hdVizAccount]}
+            <div class="rounded-2xl p-4 bg-black/35 border border-white/10 space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  {#each accounts as acc}
+                    <button
+                      type="button"
+                      on:click={() => (hdVizAccount = acc.account)}
+                      class="px-2.5 py-1 rounded-lg text-xs font-mono border cursor-pointer transition {hdVizAccount === acc.account
+                        ? 'bg-brand-neon/20 border-brand-neon text-brand-neon font-bold'
+                        : 'bg-white/5 border-white/10 text-white/65 hover:text-white'}"
+                    >
+                      Account #{acc.account}
+                    </button>
+                  {/each}
                   <button
                     type="button"
-                    on:click={() => {
-                      signAccount = row.account;
-                      activeTab = 'sign';
-                    }}
-                    class="text-xs font-mono text-brand-neon hover:underline cursor-pointer"
+                    on:click={addHdAccount}
+                    class="px-2.5 py-1 rounded-lg text-xs font-mono bg-indigo-500/20 border border-indigo-400/40 text-indigo-200 hover:bg-indigo-500/30 cursor-pointer"
                   >
-                    {$locale === 'zh' ? '用此账户发起多签 →' : 'Sign with Account #' + row.account + ' →'}
+                    + #{accountCount}
                   </button>
                 </div>
+                <button
+                  type="button"
+                  on:click={() => {
+                    signAccount = row.account;
+                    activeTab = 'sign';
+                  }}
+                  class="text-xs font-mono text-brand-neon hover:underline cursor-pointer"
+                >
+                  {$locale === 'zh' ? `用 Account #${row.account} 发起多签 →` : `Sign with Account #${row.account} →`}
+                </button>
+              </div>
 
-                <div class="grid md:grid-cols-2 gap-2.5 text-xs font-mono">
-                  {#if row.ethereum}
-                    <div class="p-3 rounded-xl bg-indigo-500/8 border {hdVizChain === 'ethereum' && hdVizAccount === row.account ? 'border-indigo-400 ring-1 ring-indigo-400/50' : 'border-indigo-400/25'} space-y-1">
-                      <div class="flex items-center justify-between gap-2 text-[11px]">
-                        <span class="text-indigo-300 font-bold">Ethereum / 100+ EVM · {row.ethereum.path}</span>
-                        <div class="flex items-center gap-2 shrink-0">
-                          <button type="button" on:click={() => inspectHdAddress('ethereum', row.account)} class="text-indigo-300 hover:underline cursor-pointer">
-                            {$locale === 'zh' ? '🌳 拆解' : '🌳 Trace'}
-                          </button>
-                          <button type="button" on:click={() => copyText(row.ethereum!.address)} class="text-white/60 hover:text-white cursor-pointer">
-                            {copiedText === row.ethereum.address ? '✓' : 'Copy'}
-                          </button>
-                        </div>
-                      </div>
-                      <div class="text-white/90 break-all">{row.ethereum.address}</div>
-                    </div>
-                  {/if}
-
-                  <div class="p-3 rounded-xl bg-amber-500/8 border {hdVizChain === 'bitcoin' && hdVizAccount === row.account ? 'border-amber-400 ring-1 ring-amber-400/50' : 'border-amber-400/25'} space-y-1">
+              <div class="grid md:grid-cols-2 gap-2.5 text-xs font-mono">
+                {#if row.ethereum}
+                  <div class="p-3 rounded-xl bg-indigo-500/8 border {hdVizChain === 'ethereum' ? 'border-indigo-400 ring-1 ring-indigo-400/50' : 'border-indigo-400/25'} space-y-1">
                     <div class="flex items-center justify-between gap-2 text-[11px]">
-                      <span class="text-amber-300 font-bold">Bitcoin Taproot · {row.bitcoin.path}</span>
+                      <span class="text-indigo-300 font-bold">Ethereum / 100+ EVM · {row.ethereum.path}</span>
                       <div class="flex items-center gap-2 shrink-0">
-                        <button type="button" on:click={() => inspectHdAddress('bitcoin', row.account)} class="text-amber-300 hover:underline cursor-pointer">
+                        <button type="button" on:click={() => inspectHdAddress('ethereum', row.account)} class="text-indigo-300 hover:underline cursor-pointer">
                           {$locale === 'zh' ? '🌳 拆解' : '🌳 Trace'}
                         </button>
-                        <button type="button" on:click={() => copyText(row.bitcoin.address)} class="text-white/60 hover:text-white cursor-pointer">
-                          {copiedText === row.bitcoin.address ? '✓' : 'Copy'}
+                        <button type="button" on:click={() => copyText(row.ethereum!.address)} class="text-white/60 hover:text-white cursor-pointer">
+                          {copiedText === row.ethereum.address ? '✓' : 'Copy'}
                         </button>
                       </div>
                     </div>
-                    <div class="text-white/90 break-all">{row.bitcoin.address}</div>
+                    <div class="text-white/90 break-all">{row.ethereum.address}</div>
                   </div>
+                {/if}
 
-                  <div class="p-3 rounded-xl bg-teal-500/8 border {hdVizChain === 'solana' && hdVizAccount === row.account ? 'border-teal-400 ring-1 ring-teal-400/50' : 'border-teal-400/25'} space-y-1">
-                    <div class="flex items-center justify-between gap-2 text-[11px]">
-                      <span class="text-teal-300 font-bold">Solana · {row.solana.path}</span>
-                      <div class="flex items-center gap-2 shrink-0">
-                        <button type="button" on:click={() => inspectHdAddress('solana', row.account)} class="text-teal-300 hover:underline cursor-pointer">
-                          {$locale === 'zh' ? '🌳 拆解' : '🌳 Trace'}
-                        </button>
-                        <button type="button" on:click={() => copyText(row.solana.address)} class="text-white/60 hover:text-white cursor-pointer">
-                          {copiedText === row.solana.address ? '✓' : 'Copy'}
-                        </button>
-                      </div>
+                <div class="p-3 rounded-xl bg-amber-500/8 border {hdVizChain === 'bitcoin' ? 'border-amber-400 ring-1 ring-amber-400/50' : 'border-amber-400/25'} space-y-1">
+                  <div class="flex items-center justify-between gap-2 text-[11px]">
+                    <span class="text-amber-300 font-bold">Bitcoin Taproot · {row.bitcoin.path}</span>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <button type="button" on:click={() => inspectHdAddress('bitcoin', row.account)} class="text-amber-300 hover:underline cursor-pointer">
+                        {$locale === 'zh' ? '🌳 拆解' : '🌳 Trace'}
+                      </button>
+                      <button type="button" on:click={() => copyText(row.bitcoin.address)} class="text-white/60 hover:text-white cursor-pointer">
+                        {copiedText === row.bitcoin.address ? '✓' : 'Copy'}
+                      </button>
                     </div>
-                    <div class="text-white/90 break-all">{row.solana.address}</div>
                   </div>
+                  <div class="text-white/90 break-all">{row.bitcoin.address}</div>
+                </div>
 
-                  <div class="p-3 rounded-xl bg-cyan-500/8 border {hdVizChain === 'sui' && hdVizAccount === row.account ? 'border-cyan-400 ring-1 ring-cyan-400/50' : 'border-cyan-400/25'} space-y-1">
-                    <div class="flex items-center justify-between gap-2 text-[11px]">
-                      <span class="text-cyan-300 font-bold">Sui · {row.sui.path}</span>
-                      <div class="flex items-center gap-2 shrink-0">
-                        <button type="button" on:click={() => inspectHdAddress('sui', row.account)} class="text-cyan-300 hover:underline cursor-pointer">
-                          {$locale === 'zh' ? '🌳 拆解' : '🌳 Trace'}
-                        </button>
-                        <button type="button" on:click={() => copyText(row.sui.address)} class="text-white/60 hover:text-white cursor-pointer">
-                          {copiedText === row.sui.address ? '✓' : 'Copy'}
-                        </button>
-                      </div>
+                <div class="p-3 rounded-xl bg-teal-500/8 border {hdVizChain === 'solana' ? 'border-teal-400 ring-1 ring-teal-400/50' : 'border-teal-400/25'} space-y-1">
+                  <div class="flex items-center justify-between gap-2 text-[11px]">
+                    <span class="text-teal-300 font-bold">Solana · {row.solana.path}</span>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <button type="button" on:click={() => inspectHdAddress('solana', row.account)} class="text-teal-300 hover:underline cursor-pointer">
+                        {$locale === 'zh' ? '🌳 拆解' : '🌳 Trace'}
+                      </button>
+                      <button type="button" on:click={() => copyText(row.solana.address)} class="text-white/60 hover:text-white cursor-pointer">
+                        {copiedText === row.solana.address ? '✓' : 'Copy'}
+                      </button>
                     </div>
-                    <div class="text-white/90 break-all">{row.sui.address}</div>
                   </div>
+                  <div class="text-white/90 break-all">{row.solana.address}</div>
+                </div>
+
+                <div class="p-3 rounded-xl bg-cyan-500/8 border {hdVizChain === 'sui' ? 'border-cyan-400 ring-1 ring-cyan-400/50' : 'border-cyan-400/25'} space-y-1">
+                  <div class="flex items-center justify-between gap-2 text-[11px]">
+                    <span class="text-cyan-300 font-bold">Sui · {row.sui.path}</span>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <button type="button" on:click={() => inspectHdAddress('sui', row.account)} class="text-cyan-300 hover:underline cursor-pointer">
+                        {$locale === 'zh' ? '🌳 拆解' : '🌳 Trace'}
+                      </button>
+                      <button type="button" on:click={() => copyText(row.sui.address)} class="text-white/60 hover:text-white cursor-pointer">
+                        {copiedText === row.sui.address ? '✓' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                  <div class="text-white/90 break-all">{row.sui.address}</div>
                 </div>
               </div>
-            {/each}
-          </div>
+            </div>
+          {/if}
         </div>
 
       {:else if activeTab === 'sign' && vault}

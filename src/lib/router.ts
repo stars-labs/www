@@ -1,6 +1,29 @@
 import { writable } from 'svelte/store';
 
 export type Route = 'home' | 'explorer' | 'wallet';
+export type WalletWorkspace = 'sandbox' | 'guides' | 'chains' | 'protocol' | 'faq';
+
+function parseWalletWorkspace(): WalletWorkspace {
+  if (typeof window === 'undefined') return 'sandbox';
+  const h = window.location.hash.replace(/^#/, '');
+  if (h === 'guides' || h === 'chains' || h === 'protocol' || h === 'faq' || h === 'sandbox') {
+    return h;
+  }
+  return 'sandbox';
+}
+
+export const walletWorkspace = writable<WalletWorkspace>(parseWalletWorkspace());
+
+export function setWalletWorkspace(ws: WalletWorkspace, scrollToContent = true) {
+  walletWorkspace.set(ws);
+  if (typeof window !== 'undefined') {
+    window.history.replaceState(window.history.state, '', `#${ws}`);
+    if (scrollToContent) {
+      const el = document.getElementById('wallet-workspace');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+}
 
 function isWalletHost(): boolean {
   return typeof window !== 'undefined' && window.location.hostname.startsWith('wallet.');

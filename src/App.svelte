@@ -13,7 +13,14 @@
   import TransactionPanel from "./components/TransactionPanel.svelte";
   import Branches from "./components/Branches.svelte";
   import WalletGuide from "./components/WalletGuide.svelte";
-  import { currentRoute, navigateTo, type Route } from "./lib/router";
+  import {
+    currentRoute,
+    navigateTo,
+    walletWorkspace,
+    setWalletWorkspace,
+    type Route,
+    type WalletWorkspace,
+  } from "./lib/router";
   import { locale, t } from "./lib/i18n";
   import faviconUrl from "/favicon.png";
 
@@ -28,6 +35,11 @@
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     mobileMenuOpen = false; // Close mobile menu after navigation
+  }
+
+  function selectWalletTab(ws: WalletWorkspace) {
+    setWalletWorkspace(ws, true);
+    mobileMenuOpen = false;
   }
 
   function handleNavigate(route: Route) {
@@ -97,42 +109,28 @@
     <!-- Desktop Navigation -->
     <ul class="hidden md:flex gap-7 text-sm items-center">
       {#if $currentRoute === 'wallet'}
-        <li>
-          <button
-            on:click={() => scrollToId('playground')}
-            class="text-brand-neon hover:brightness-125 font-semibold transition cursor-pointer"
-          >
-            {$locale === 'zh' ? '⚡ 在线 WASM 体验' : '⚡ Live Sandbox'}
-          </button>
-        </li>
-        <li>
-          <button
-            on:click={() => scrollToId('chains')}
-            class="text-white/75 hover:text-white transition cursor-pointer"
-          >
-            {$locale === 'zh' ? '全链支持' : 'Chains'}
-          </button>
-        </li>
-        <li>
-          <button
-            on:click={() => scrollToId('client-atlas')}
-            class="text-white/75 hover:text-white transition cursor-pointer"
-          >
-            {$locale === 'zh' ? '操作动图' : 'GIF Guide'}
-          </button>
-        </li>
-        <li>
-          <button
-            on:click={() => scrollToId('faq')}
-            class="text-white/75 hover:text-white transition cursor-pointer"
-          >
-            FAQ
-          </button>
-        </li>
+        {#each [
+          { id: 'sandbox', zh: '⚡ 在线体验', en: '⚡ Sandbox' },
+          { id: 'guides', zh: '🎬 操作动图', en: '🎬 GIF Guides' },
+          { id: 'chains', zh: '🌐 全链对比', en: '🌐 Chains' },
+          { id: 'protocol', zh: '🧠 协议原理', en: '🧠 Protocol' },
+          { id: 'faq', zh: '❓ FAQ', en: '❓ FAQ' },
+        ] as item}
+          <li>
+            <button
+              on:click={() => selectWalletTab(item.id as WalletWorkspace)}
+              class="transition cursor-pointer {$walletWorkspace === item.id
+                ? 'text-brand-neon font-bold'
+                : 'text-white/75 hover:text-white'}"
+            >
+              {$locale === 'zh' ? item.zh : item.en}
+            </button>
+          </li>
+        {/each}
         <li>
           <a
             href="https://starslab.qzz.io"
-            class="text-white/55 hover:text-white transition"
+            class="text-white/50 hover:text-white transition"
           >
             StarsLab &nearr;
           </a>
@@ -229,19 +227,21 @@
     <div class="md:hidden absolute top-16 left-0 right-0 bg-black/95 backdrop-blur border-b border-white/10">
       <div class="px-6 py-4 space-y-3">
         {#if $currentRoute === 'wallet'}
-          <button on:click={() => scrollToId('playground')} class="block w-full text-left text-brand-neon font-semibold py-2">
-            {$locale === 'zh' ? '⚡ 在线 WASM 体验' : '⚡ Live WASM Sandbox'}
-          </button>
-          <button on:click={() => scrollToId('chains')} class="block w-full text-left text-white/75 hover:text-white py-2">
-            {$locale === 'zh' ? '全链支持' : 'All Chains'}
-          </button>
-          <button on:click={() => scrollToId('client-atlas')} class="block w-full text-left text-white/75 hover:text-white py-2">
-            {$locale === 'zh' ? '四端操作动图' : 'Operation GIFs'}
-          </button>
-          <button on:click={() => scrollToId('faq')} class="block w-full text-left text-white/75 hover:text-white py-2">
-            FAQ
-          </button>
-          <a href="https://starslab.qzz.io" class="block w-full text-left text-white/55 hover:text-white py-2">
+          {#each [
+            { id: 'sandbox', zh: '⚡ 在线 WASM 体验', en: '⚡ Live WASM Sandbox' },
+            { id: 'guides', zh: '🎬 四端操作动图 (36 GIF)', en: '🎬 Client GIF Guides (36)' },
+            { id: 'chains', zh: '🌐 全链支持 & 对比', en: '🌐 Chains & Comparison' },
+            { id: 'protocol', zh: '🧠 协议原理 & 安全清单', en: '🧠 Protocol & Checklist' },
+            { id: 'faq', zh: '❓ 深度 FAQ', en: '❓ FAQ' },
+          ] as item}
+            <button
+              on:click={() => selectWalletTab(item.id as WalletWorkspace)}
+              class="block w-full text-left py-2 {$walletWorkspace === item.id ? 'text-brand-neon font-bold' : 'text-white/75 hover:text-white'}"
+            >
+              {$locale === 'zh' ? item.zh : item.en}
+            </button>
+          {/each}
+          <a href="https://starslab.qzz.io" class="block w-full text-left text-white/50 hover:text-white py-2">
             {$locale === 'zh' ? 'StarsLab 实验室官网' : 'StarsLab Home'} &nearr;
           </a>
         {:else}
