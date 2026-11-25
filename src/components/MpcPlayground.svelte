@@ -3,7 +3,7 @@
   import { locale } from '../lib/i18n';
   import MpcFlowVisualizer from './MpcFlowVisualizer.svelte';
   import {
-    runLiveDkg,
+    startLiveDkgSession,
     deriveVaultAccounts,
     runFrostSigning,
     runEvmCggmp24Signing,
@@ -11,6 +11,8 @@
     encryptDeviceBackup,
     decryptDeviceBackup,
     buildSingleDeviceAttackScene,
+    type LiveDkgSession,
+    type LiveDkgSnapshot,
     type SandboxVault,
     type DerivedAccountRow,
     type SigningResult,
@@ -25,6 +27,8 @@
   let vaultName = 'Starlab Treasury';
   let preset: '2-3' | '2-2' | '3-5' = '2-3';
 
+  let dkgSession: LiveDkgSession | null = null;
+  let dkgSnap: LiveDkgSnapshot | null = null;
   let vault: SandboxVault | null = null;
   let accountCount = 3;
   let accounts: DerivedAccountRow[] = [];
@@ -85,7 +89,36 @@
 
   onDestroy(() => {
     observer?.disconnect();
+    dkgSession?.dispose();
   });
+
+  function applyDkgSnapshot(snap: LiveDkgSnapshot) {
+    dkgSnap = snap;
+    if (snap.vault) {
+      vault = snap.vault;
+      accounts = deriveVaultAccounts(snap.vault, accountCount);
+      selectedSigners = Array.from({ length: snap.vault.threshold }, (_, i) => i + 1);
+      reshareDropIndex = snap.vault.total;
+      backupDeviceIndex = 1;
+      if (signChain === 'ethereum' && !snap.vault.ecdsaGroupPubkey) {
+        signChain = 'bitcoin';
+      }
+    }
+  }
+
+  async function ensureVaultFinalized() {
+    if (dkgSession && (!vault || (dkgSnap && dkgSnap.executedStage < 3))) {
+      const snap = await dkgSession.advanceToStage(3);
+      applyDkgSnapshot(snap);
+    }
+  }
+
+  async function switchTab(tab: TabId) {
+    if (tab !== 'dkg') {
+      await ensureVaultFinalized();
+    }
+    activeTab = tab;
+  }
 
   function copyText(val: string) {
     navigator.clipboard?.writeText(val);
@@ -115,22 +148,51 @@
     activeTab = 'dkg';
     try {
       const [t, n] = presetNumbers(preset);
-      // Let UI paint spinner before synchronous WASM DKG
-      await new Promise((r) => setTimeout(r, 30));
-      const v = await runLiveDkg(vaultName, t, n);
-      vault = v;
+      dkgSession?.dispose();
+      vault = null;
+      accounts = [];
       accountCount = 3;
-      accounts = deriveVaultAccounts(v, accountCount);
-      selectedSigners = Array.from({ length: t }, (_, i) => i + 1);
-      reshareDropIndex = n;
-      backupDeviceIndex = 1;
-      if (signChain === 'ethereum' && !v.ecdsaGroupPubkey) {
-        signChain = 'bitcoin';
-      }
+      // Let UI paint spinner before synchronous WASM Step 0 seed generation
+      await new Promise((r) => setTimeout(r, 25));
+      const { session, snapshot } = await startLiveDkgSession(vaultName, t, n);
+      dkgSession = session;
+      applyDkgSnapshot(snapshot);
     } catch (e: any) {
       dkgError = e?.message || String(e);
     } finally {
       loadingDkg = false;
+    }
+  }
+
+  async function handleDkgAdvanceStage(targetStage: number) {
+    if (!dkgSession) return;
+    const snap = await dkgSession.advanceToStage(targetStage);
+    applyDkgSnapshot(snap);
+  }
+
+  async function handleDkgStepBackFresh(targetStage: number, reason: 'step-back' | 'reseed') {
+    if (!dkgSession) return;
+    signResult = null;
+    activeSignScene = null;
+    reshareResult = null;
+    encryptedBackup = null;
+    const snap = await dkgSession.reseedAndRunTo(targetStage, reason);
+    if (targetStage < 3) {
+      vault = null;
+      accounts = [];
+    }
+    applyDkgSnapshot(snap);
+  }
+
+  async function handleSignFreshReRun(_targetStage: number, _reason: 'step-back' | 'reseed') {
+    if (!vault) return;
+    if (selectedSigners.length < vault.threshold) {
+      activeSignScene = buildSingleDeviceAttackScene(vault, selectedSigners);
+      return;
+    }
+    if (signChain !== 'ethereum') {
+      signResult = await runFrostSigning(vault, signChain, signAccount, selectedSigners, signMessage);
+      activeSignScene = signResult.signScene;
     }
   }
 
@@ -172,6 +234,28 @@
     return {
       kind: 'sign',
       runId: Date.now(),
+      deviceLogs: {
+        [a]: [
+          {
+            stage: 0,
+            ts: new Date().toTimeString().slice(0, 8) + '.000',
+            tag: 'WORKER',
+            level: 'tx',
+            msgZh: `正在独立 Web Worker 执行 CGGMP24 3072-bit Paillier 同态乘法协议…`,
+            msgEn: `Running live CGGMP24 3072-bit Paillier MtA in Web Worker…`,
+          },
+        ],
+        [b]: [
+          {
+            stage: 0,
+            ts: new Date().toTimeString().slice(0, 8) + '.000',
+            tag: 'WORKER',
+            level: 'rx',
+            msgZh: `正在校验零知识仿射证明并计算 ECDSA 局部乘积分片…`,
+            msgEn: `Verifying Paillier ZK affine proofs & computing ECDSA share…`,
+          },
+        ],
+      },
       stages: [
         {
           key: 'evm-busy',
@@ -420,7 +504,7 @@
       ] as tab}
         <button
           type="button"
-          on:click={() => (activeTab = tab.id as TabId)}
+          on:click={() => switchTab(tab.id as TabId)}
           class="px-3.5 py-2.5 text-xs sm:text-sm font-semibold whitespace-nowrap border-b-2 transition cursor-pointer {activeTab === tab.id
             ? 'border-brand-neon text-brand-neon'
             : 'border-transparent text-white/60 hover:text-white'}"
@@ -432,7 +516,7 @@
 
     <!-- Main Interactive Body -->
     <div class="p-6 sm:p-8">
-      {#if !vault}
+      {#if !dkgSnap && !vault}
         <!-- Empty Welcome Prompt -->
         <div class="py-10 text-center max-w-xl mx-auto space-y-5">
           <div class="text-4xl">🔐⚡🌐</div>
@@ -469,26 +553,32 @@
           </p>
         </div>
 
-      {:else if activeTab === 'dkg'}
-        <!-- ==================== TAB 1: DKG TRACE & 3 SHARES ==================== -->
+      {:else if activeTab === 'dkg' && dkgSnap}
+        <!-- ==================== TAB 1: LIVE STEP-BY-STEP WASM DKG ==================== -->
         <div class="space-y-6">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 class="text-lg font-bold text-white">
-                {$locale === 'zh'
-                  ? `✅ 2 轮 DKG 建库完成（总耗时 ${vault.totalElapsedMs.toFixed(0)} ms）`
-                  : `✅ 2-Round DKG Complete (${vault.totalElapsedMs.toFixed(0)} ms total)`}
+                {#if vault}
+                  {$locale === 'zh'
+                    ? `✅ 2 轮 DKG 建库完成（真实 WASM 总耗时 ${vault.totalElapsedMs.toFixed(0)} ms）`
+                    : `✅ 2-Round DKG Complete (${vault.totalElapsedMs.toFixed(0)} ms real WASM)`}
+                {:else}
+                  {$locale === 'zh'
+                    ? `⚡ Rust WASM 真机分步运行中（当前已算至第 ${dkgSnap.executedStage + 1}/4 步）`
+                    : `⚡ Running Real Rust WASM Step-by-Step (Executed Step ${dkgSnap.executedStage + 1}/4)`}
+                {/if}
               </h3>
               <p class="text-xs text-white/65">
                 {$locale === 'zh'
-                  ? '全部设备独立算出完全相同的全链群公钥，但每台设备持有的本地加密分片互不相同，完整私钥从未在任何位置存在过。'
-                  : 'Every device independently converged on the exact same group public keys while holding distinct secret shares — no full private key ever existed.'}
+                  ? '每一步都由浏览器内的真实 Rust WASM 即时计算；点「上一步(换种子)」或「换新随机种子」会立刻清零内存并重新生成 32B 随机种子；点击画布中任意一台机器可查看实时终端日志！'
+                  : 'Every step genuinely executes in Rust WASM on demand. Clicking Prev or Roll New Seeds zeroizes memory and rolls brand-new 32B CSPRNG seeds; click any machine node to inspect live terminal logs!'}
               </p>
             </div>
             <div class="flex gap-2">
               <button
                 type="button"
-                on:click={() => (activeTab = 'accounts')}
+                on:click={() => switchTab('accounts')}
                 class="px-3.5 py-2 rounded-lg bg-brand-neon/15 border border-brand-neon/40 text-brand-neon text-xs font-semibold hover:bg-brand-neon/25 cursor-pointer"
               >
                 {$locale === 'zh' ? '下一步：查看全链 HD 地址 →' : 'Next: Multi-Chain HD Addresses →'}
@@ -496,49 +586,56 @@
             </div>
           </div>
 
-          <!-- Live Interactive Protocol Flow Animation -->
-          <MpcFlowVisualizer scene={vault.dkgScene} devices={vault.devices} />
+          <!-- Live Step-by-Step Rust WASM Interactive Flow Visualizer -->
+          <MpcFlowVisualizer
+            scene={dkgSnap.scene}
+            devices={dkgSnap.devices}
+            onAdvanceStage={handleDkgAdvanceStage}
+            onStepBackFresh={handleDkgStepBackFresh}
+          />
 
-          <!-- Protocol Round Logs -->
-          <div class="grid md:grid-cols-2 gap-3">
-            {#each vault.logs as log, idx}
-              <div class="rounded-2xl p-4 bg-black/35 border border-white/10 space-y-2">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-xs font-bold text-brand-neon">
-                    {$locale === 'zh' ? log.titleZh : log.titleEn}
-                  </span>
-                  <span class="text-[11px] font-mono text-emerald-300 shrink-0">
-                    {log.elapsedMs.toFixed(1)} ms
-                  </span>
-                </div>
-                <div class="flex items-center justify-between text-[11px] font-mono text-white/55">
-                  <span>Wire: {log.bytesExchanged > 0 ? `${log.bytesExchanged} bytes` : 'local verify'}</span>
-                  <button
-                    type="button"
-                    on:click={() => (expandedLogIdx = expandedLogIdx === idx ? null : idx)}
-                    class="text-violet-300 hover:underline cursor-pointer"
-                  >
-                    {expandedLogIdx === idx ? ($locale === 'zh' ? '收起报文' : 'Hide hex') : ($locale === 'zh' ? '查看真实 Hex' : 'Inspect Hex')}
-                  </button>
-                </div>
-                {#if expandedLogIdx === idx}
-                  <div class="p-2.5 rounded-lg bg-black/60 border border-white/10 font-mono text-[10px] text-white/75 break-all">
-                    {log.sampleHex}
+          <!-- Protocol Round Logs (populate live as each WASM round runs!) -->
+          {#if dkgSnap.logs.length > 0}
+            <div class="grid md:grid-cols-2 gap-3">
+              {#each dkgSnap.logs as log, idx}
+                <div class="rounded-2xl p-4 bg-black/35 border border-white/10 space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-xs font-bold text-brand-neon">
+                      {$locale === 'zh' ? log.titleZh : log.titleEn}
+                    </span>
+                    <span class="text-[11px] font-mono text-emerald-300 shrink-0">
+                      {log.elapsedMs.toFixed(1)} ms
+                    </span>
                   </div>
-                {/if}
-              </div>
-            {/each}
-          </div>
+                  <div class="flex items-center justify-between text-[11px] font-mono text-white/55">
+                    <span>Wire: {log.bytesExchanged > 0 ? `${log.bytesExchanged} bytes` : 'local verify'}</span>
+                    <button
+                      type="button"
+                      on:click={() => (expandedLogIdx = expandedLogIdx === idx ? null : idx)}
+                      class="text-violet-300 hover:underline cursor-pointer"
+                    >
+                      {expandedLogIdx === idx ? ($locale === 'zh' ? '收起报文' : 'Hide hex') : ($locale === 'zh' ? '查看真实 Hex' : 'Inspect Hex')}
+                    </button>
+                  </div>
+                  {#if expandedLogIdx === idx}
+                    <div class="p-2.5 rounded-lg bg-black/60 border border-white/10 font-mono text-[10px] text-white/75 break-all">
+                      {log.sampleHex}
+                    </div>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
 
           <!-- Virtual Devices Grid -->
           <div class="space-y-3">
             <h4 class="text-sm font-bold text-white/90">
               {$locale === 'zh'
-                ? `各设备独立持有的分片隔离视图（每个设备存 ${vault.ecdsaGroupPubkey ? '3' : '2'} 份独立分片）`
-                : `Isolated Per-Device Key Shares (${vault.ecdsaGroupPubkey ? '3' : '2'} Curves Per Device)`}
+                ? `各设备独立持有的分片隔离视图（每个设备存 ${dkgSnap.devices[0]?.ecdsaKeyShare ? '3' : '2'} 份独立分片）`
+                : `Isolated Per-Device Key Shares (${dkgSnap.devices[0]?.ecdsaKeyShare ? '3' : '2'} Curves Per Device)`}
             </h4>
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {#each vault.devices as dev}
+              {#each dkgSnap.devices as dev}
                 <div
                   class="rounded-2xl p-4 border {dev.compromised
                     ? 'border-red-500/40 bg-red-950/20 opacity-75'
@@ -555,7 +652,7 @@
                       </span>
                     {:else}
                       <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                        {$locale === 'zh' ? '在线持有' : 'ACTIVE'}
+                        {$locale === 'zh' ? (vault ? '在线持有' : '计算中') : vault ? 'ACTIVE' : 'COMPUTING'}
                       </span>
                     {/if}
                   </div>
@@ -590,7 +687,7 @@
           </div>
         </div>
 
-      {:else if activeTab === 'accounts'}
+      {:else if activeTab === 'accounts' && vault}
         <!-- ==================== TAB 2: MULTI-CHAIN HD ACCOUNTS ==================== -->
         <div class="space-y-5">
           <div class="flex flex-wrap items-center justify-between gap-3">
@@ -691,13 +788,17 @@
           </div>
         </div>
 
-      {:else if activeTab === 'sign'}
+      {:else if activeTab === 'sign' && vault}
         <!-- ==================== TAB 3: THRESHOLD SIGNING & ATTACK PROOF ==================== -->
         <div class="space-y-6">
           {#if liveEvmBusyScene}
             <MpcFlowVisualizer scene={liveEvmBusyScene} devices={vault.devices} loopForever={true} />
           {:else if activeSignScene}
-            <MpcFlowVisualizer scene={activeSignScene} devices={vault.devices} />
+            <MpcFlowVisualizer
+              scene={activeSignScene}
+              devices={vault.devices}
+              onStepBackFresh={signChain !== 'ethereum' ? handleSignFreshReRun : null}
+            />
           {/if}
 
           <div class="grid lg:grid-cols-12 gap-6">
@@ -898,7 +999,7 @@
           </div>
         </div>
 
-      {:else if activeTab === 'reshare'}
+      {:else if activeTab === 'reshare' && vault}
         <!-- ==================== TAB 4: ADDRESS-PRESERVING RESHARE ==================== -->
         <div class="space-y-5">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1010,7 +1111,7 @@
           </div>
         </div>
 
-      {:else if activeTab === 'backup'}
+      {:else if activeTab === 'backup' && vault}
         <!-- ==================== TAB 5: AES-256-GCM BACKUP & RESTORE ==================== -->
         <div class="grid lg:grid-cols-12 gap-6">
           <div class="lg:col-span-6 space-y-4">
