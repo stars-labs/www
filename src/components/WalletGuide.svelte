@@ -2,6 +2,7 @@
   import { locale } from '../lib/i18n';
   import { navigateTo } from '../lib/router';
   import AnnotatedScreenshot from './AnnotatedScreenshot.svelte';
+  import MpcPlayground from './MpcPlayground.svelte';
   import {
     chainFamilies,
     extensionShots,
@@ -33,6 +34,7 @@
   const totalShots = extensionShots.length + desktopShots.length + tuiShots.length + cliShots.length;
 
   const stepsNav = [
+    { id: 'playground', num: '⚡', en: 'Live WASM Sandbox', zh: '在线 WASM 体验' },
     { id: 'chains', num: '链', en: 'All Chains', zh: '全链支持' },
     { id: 'concepts', num: '00', en: '2-Round DKG · Multi-Sig · Broadcast', zh: '2轮DKG/多签/广播原理' },
     { id: 'client-extension', num: '01', en: `Extension (${extensionShots.length} GIFs)`, zh: `Chrome 插件 (${extensionShots.length}动图)` },
@@ -88,17 +90,17 @@
         <div class="flex flex-wrap gap-3 pt-2">
           <button
             type="button"
-            on:click={() => scrollToStep('concepts')}
-            class="px-6 py-3.5 rounded-xl bg-brand-accent text-white font-semibold text-sm sm:text-base shadow-[0_10px_30px_rgba(233,69,96,0.35)] hover:brightness-110 transition cursor-pointer"
+            on:click={() => scrollToStep('playground')}
+            class="px-6 py-3.5 rounded-xl bg-gradient-to-r from-brand-accent to-violet-600 text-white font-bold text-sm sm:text-base shadow-[0_10px_30px_rgba(233,69,96,0.4)] hover:brightness-110 transition cursor-pointer"
           >
-            {$locale === 'zh' ? '先看 2 轮 DKG / 多签 / 广播原理 ↓' : 'Learn 2-Round DKG · Multi-Sig · Broadcast ↓'}
+            {$locale === 'zh' ? '⚡ 立即免安装在线体验 WASM 真机沙盒 ↓' : '⚡ Try Live WASM MPC Sandbox Now ↓'}
           </button>
           <button
             type="button"
             on:click={() => selectClientAndScroll('all', 'client-atlas')}
             class="px-5 py-3.5 rounded-xl bg-brand-neon/15 hover:bg-brand-neon/25 border border-brand-neon/40 text-brand-neon font-semibold text-sm sm:text-base transition cursor-pointer"
           >
-            {$locale === 'zh' ? `直达四端 ${totalShots} 组操作 GIF 动图 ↓` : `Jump to All ${totalShots} Operation GIFs ↓`}
+            {$locale === 'zh' ? `查看四端 ${totalShots} 组操作 GIF 动图 ↓` : `View All ${totalShots} Operation GIFs ↓`}
           </button>
         </div>
 
@@ -244,8 +246,13 @@
     </div>
   </div>
 
+  <!-- LIVE INTERACTIVE WASM MPC SANDBOX -->
+  <div class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pt-14 pb-6">
+    <MpcPlayground />
+  </div>
+
   <!-- FULL CHAIN COVERAGE SECTION (LEDGER-SCALE) -->
-  <section id="chains" class="relative z-10 scroll-mt-36 max-w-7xl mx-auto px-6 md:px-10 pt-16 pb-10 space-y-8">
+  <section id="chains" class="relative z-10 scroll-mt-36 max-w-7xl mx-auto px-6 md:px-10 pt-12 pb-10 space-y-8">
     <div class="max-w-3xl space-y-3">
       <p class="text-xs font-mono uppercase tracking-widest text-brand-neon">
         {$locale === 'zh' ? '不止 4 条链 · 与 LEDGER 同级多链覆盖' : 'FAR MORE THAN 4 CHAINS · LEDGER-SCALE ECOSYSTEM'}
