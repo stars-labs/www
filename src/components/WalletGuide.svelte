@@ -35,10 +35,10 @@
   const stepsNav = [
     { id: 'chains', num: '链', en: 'All Chains', zh: '全链支持' },
     { id: 'concepts', num: '00', en: '2-Round DKG · Multi-Sig · Broadcast', zh: '2轮DKG/多签/广播原理' },
-    { id: 'client-extension', num: '01', en: `Extension (${extensionShots.length})`, zh: `Chrome 插件 (${extensionShots.length}图)` },
-    { id: 'client-desktop', num: '02', en: `Desktop (${desktopShots.length})`, zh: `桌面端 (${desktopShots.length}图)` },
-    { id: 'client-tui', num: '03', en: `Terminal TUI (${tuiShots.length})`, zh: `终端 TUI (${tuiShots.length}图)` },
-    { id: 'client-cli', num: '04', en: `Headless CLI (${cliShots.length})`, zh: `命令行 CLI (${cliShots.length}图)` },
+    { id: 'client-extension', num: '01', en: `Extension (${extensionShots.length} GIFs)`, zh: `Chrome 插件 (${extensionShots.length}动图)` },
+    { id: 'client-desktop', num: '02', en: `Desktop (${desktopShots.length} GIFs)`, zh: `桌面端 (${desktopShots.length}动图)` },
+    { id: 'client-tui', num: '03', en: `Terminal TUI (${tuiShots.length} GIFs)`, zh: `终端 TUI (${tuiShots.length}动图)` },
+    { id: 'client-cli', num: '04', en: `Headless CLI (${cliShots.length} GIFs)`, zh: `命令行 CLI (${cliShots.length}动图)` },
     { id: 'faq', num: 'FAQ', en: 'Checklist & FAQ', zh: '避坑与问答' },
   ];
 </script>
@@ -60,8 +60,8 @@
         >
           <span class="w-2 h-2 rounded-full bg-brand-neon animate-pulse"></span>
           {$locale === 'zh'
-            ? `STARLAB MPC 全景实战教程 · 四大客户端 · ${totalShots} 张实机标注截图`
-            : `STARLAB MPC COMPLETE GUIDE · 4 CLIENTS · ${totalShots} ANNOTATED SCREENSHOTS`}
+            ? `STARLAB MPC 全景实战教程 · 四大客户端 · ${totalShots} 组实机操作 GIF 动图`
+            : `STARLAB MPC COMPLETE GUIDE · 4 CLIENTS · ${totalShots} LIVE OPERATION GIFS`}
         </div>
 
         <h1 class="text-4xl sm:text-5xl lg:text-[3.3rem] font-extrabold tracking-tight leading-[1.12]">
@@ -78,9 +78,9 @@
 
         <p class="text-base sm:text-lg text-white/75 leading-relaxed max-w-xl">
           {#if $locale === 'zh'}
-            底层采用与 <strong>Ledger 硬件钱包同级</strong> 的 <code>secp256k1 + Ed25519</code> 曲线底座，支持 <strong>100+ EVM 链 + Bitcoin Taproot + Solana + Sui + Aptos</strong>。本页提供 <strong>{totalShots} 张实机带标注截图</strong>，覆盖 <strong>Chrome 插件、Desktop 桌面端、Terminal TUI、Headless CLI</strong> 四大客户端，把 <strong>2 轮 DKG、2 轮门限多签、交易广播上链</strong> 一次讲透，零基础小白也能直接上手！
+            底层采用与 <strong>Ledger 硬件钱包同级</strong> 的 <code>secp256k1 + Ed25519</code> 曲线底座，支持 <strong>100+ EVM 链 + Bitcoin Taproot + Solana + Sui + Aptos</strong>。本页提供 <strong>{totalShots} 组实机动态 GIF 操作演示</strong>，覆盖 <strong>Chrome 插件、Desktop 桌面端、Terminal TUI、Headless CLI</strong> 四大客户端，把 <strong>2 轮 DKG、2 轮门限多签、交易广播上链</strong> 每一步点击动效一次看懂！
           {:else}
-            Powered by the same <code>secp256k1 + Ed25519</code> curve foundation as <strong>Ledger</strong> — covering <strong>100+ EVM chains + Bitcoin Taproot + Solana + Sui + Aptos</strong>. Explore <strong>{totalShots} real annotated screenshots</strong> across <strong>Chrome Extension, Desktop, Terminal TUI, and Headless CLI</strong> with a complete beginner breakdown of <strong>2-Round DKG, 2-Round Multi-Sig, and Broadcasting</strong>.
+            Powered by the same <code>secp256k1 + Ed25519</code> curve foundation as <strong>Ledger</strong> — covering <strong>100+ EVM chains + Bitcoin Taproot + Solana + Sui + Aptos</strong>. Explore <strong>{totalShots} real animated operation GIFs</strong> across <strong>Chrome Extension, Desktop, Terminal TUI, and Headless CLI</strong> showing every click of <strong>2-Round DKG, 2-Round Multi-Sig, and Broadcasting</strong>.
           {/if}
         </p>
 
@@ -98,7 +98,7 @@
             on:click={() => selectClientAndScroll('all', 'client-atlas')}
             class="px-5 py-3.5 rounded-xl bg-brand-neon/15 hover:bg-brand-neon/25 border border-brand-neon/40 text-brand-neon font-semibold text-sm sm:text-base transition cursor-pointer"
           >
-            {$locale === 'zh' ? `直达四端 ${totalShots} 张实操截图 ↓` : `Jump to All ${totalShots} Client Screenshots ↓`}
+            {$locale === 'zh' ? `直达四端 ${totalShots} 组操作 GIF 动图 ↓` : `Jump to All ${totalShots} Operation GIFs ↓`}
           </button>
         </div>
 
@@ -143,12 +143,12 @@
                 <span class="ml-2 text-xs font-mono text-white/60">Starlab Desktop · 2-of-2 Co-Signer</span>
               </div>
               <span class="px-2 py-0.5 rounded-full text-[11px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                ● 0xc35f...8961
+                ● LIVE GIF · 0xc35f...8961
               </span>
             </div>
             <img
-              src="/wallet-guide/desktop-sign.webp"
-              alt="Starlab Desktop 2-of-2 multi-chain vault"
+              src="/wallet-guide/hero-desktop-flow.gif"
+              alt="Starlab Desktop live MPC DKG and threshold signing animation"
               class="w-full h-auto block"
             />
           </div>
@@ -158,11 +158,11 @@
           >
             <div class="px-3 py-1.5 bg-violet-600/25 border-b border-white/10 flex items-center justify-between">
               <span class="text-[10px] font-mono text-violet-200">Chrome Extension</span>
-              <span class="text-[10px] font-mono text-emerald-300">● 2-of-2</span>
+              <span class="text-[10px] font-mono text-emerald-300">● LIVE GIF</span>
             </div>
             <img
-              src="/wallet-guide/ext-home.webp"
-              alt="Starlab Chrome Extension synced 2-of-2 wallet"
+              src="/wallet-guide/hero-ext-flow.gif"
+              alt="Starlab Chrome Extension live DKG and wallet walkthrough animation"
               class="w-full h-auto block"
             />
           </div>
@@ -177,7 +177,7 @@
         on:click={() => selectClientAndScroll('all', 'client-extension')}
         class="text-left rounded-2xl p-5 bg-brand-surface/70 border border-violet-400/25 hover:border-violet-400/60 transition cursor-pointer"
       >
-        <div class="text-xs font-mono uppercase tracking-wider text-violet-300 mb-1">01 · CHROME EXTENSION ({extensionShots.length} SHOTS)</div>
+        <div class="text-xs font-mono uppercase tracking-wider text-violet-300 mb-1">01 · CHROME EXTENSION ({extensionShots.length} GIFS)</div>
         <div class="text-lg font-bold text-white">{$locale === 'zh' ? '浏览器插件' : 'Browser Extension'}</div>
         <p class="text-xs text-white/60 mt-1">
           {$locale === 'zh'
@@ -190,7 +190,7 @@
         on:click={() => selectClientAndScroll('all', 'client-desktop')}
         class="text-left rounded-2xl p-5 bg-brand-surface/70 border border-brand-accent/25 hover:border-brand-accent/60 transition cursor-pointer"
       >
-        <div class="text-xs font-mono uppercase tracking-wider text-brand-accent mb-1">02 · DESKTOP GUI ({desktopShots.length} SHOTS)</div>
+        <div class="text-xs font-mono uppercase tracking-wider text-brand-accent mb-1">02 · DESKTOP GUI ({desktopShots.length} GIFS)</div>
         <div class="text-lg font-bold text-white">{$locale === 'zh' ? '桌面客户端' : 'Starlab Desktop'}</div>
         <p class="text-xs text-white/60 mt-1">
           {$locale === 'zh'
@@ -203,7 +203,7 @@
         on:click={() => selectClientAndScroll('all', 'client-tui')}
         class="text-left rounded-2xl p-5 bg-brand-surface/70 border border-emerald-400/25 hover:border-emerald-400/60 transition cursor-pointer"
       >
-        <div class="text-xs font-mono uppercase tracking-wider text-emerald-300 mb-1">03 · TERMINAL TUI ({tuiShots.length} SHOTS)</div>
+        <div class="text-xs font-mono uppercase tracking-wider text-emerald-300 mb-1">03 · TERMINAL TUI ({tuiShots.length} GIFS)</div>
         <div class="text-lg font-bold text-white">{$locale === 'zh' ? '终端 TUI' : 'Starlab TUI'}</div>
         <p class="text-xs text-white/60 mt-1">
           {$locale === 'zh'
@@ -216,7 +216,7 @@
         on:click={() => selectClientAndScroll('all', 'client-cli')}
         class="text-left rounded-2xl p-5 bg-brand-surface/70 border border-brand-neon/25 hover:border-brand-neon/60 transition cursor-pointer"
       >
-        <div class="text-xs font-mono uppercase tracking-wider text-brand-neon mb-1">04 · HEADLESS CLI ({cliShots.length} SHOTS)</div>
+        <div class="text-xs font-mono uppercase tracking-wider text-brand-neon mb-1">04 · HEADLESS CLI ({cliShots.length} GIFS)</div>
         <div class="text-lg font-bold text-white">{$locale === 'zh' ? '命令行 CLI' : 'Starlab CLI'}</div>
         <p class="text-xs text-white/60 mt-1">
           {$locale === 'zh'
@@ -604,12 +604,12 @@
     <div class="rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-[#161c2e] via-[#13192a] to-[#1a1630] border border-white/12 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
       <div class="space-y-2">
         <span class="text-xs font-mono uppercase tracking-widest text-brand-neon">
-          {$locale === 'zh' ? `全套 ${totalShots} 张实机带标注图解` : `COMPLETE ${totalShots}-SCREENSHOT VISUAL ATLAS`}
+          {$locale === 'zh' ? `全套 ${totalShots} 组实机动态 GIF 操作图鉴` : `COMPLETE ${totalShots}-GIF INTERACTIVE WALKTHROUGH`}
         </span>
         <h2 class="text-2xl sm:text-3xl font-extrabold">
           {$locale === 'zh'
-            ? '四大客户端逐屏保姆级实操图鉴（点击任意截图可放大，悬停编号高亮）'
-            : 'Every Screen Across All 4 Clients — Click Any Shot to Zoom'}
+            ? '四大客户端逐屏操作 GIF 动图（自动演示点击与跳转，点图放大，悬停编号定位）'
+            : 'Every Screen Across All 4 Clients — Live Operation GIFs (Click to Zoom)'}
         </h2>
       </div>
 
@@ -621,7 +621,7 @@
             ? 'bg-white text-black border-white'
             : 'bg-white/5 text-white/75 border-white/15 hover:text-white'}"
         >
-          {$locale === 'zh' ? `全部四端 (${totalShots}图)` : `All 4 Clients (${totalShots})`}
+          {$locale === 'zh' ? `全部四端 (${totalShots}动图)` : `All 4 Clients (${totalShots} GIFs)`}
         </button>
         <button
           type="button"
@@ -671,7 +671,7 @@
               CLIENT 01 · CHROME EXTENSION
             </span>
             <span class="text-xs font-mono text-white/50">
-              {extensionShots.length} {$locale === 'zh' ? '张实机带标注截图 · 日常 Web3 & 自动广播主力' : 'ANNOTATED SHOTS · EVERYDAY WEB3 & AUTO-BROADCAST'}
+              {extensionShots.length} {$locale === 'zh' ? '组操作 GIF 动图 · 日常 Web3 & 自动广播主力' : 'LIVE OPERATION GIFS · EVERYDAY WEB3 & AUTO-BROADCAST'}
             </span>
           </div>
           <h2 class="text-2xl sm:text-4xl font-bold">
@@ -718,7 +718,7 @@
               CLIENT 02 · STARLAB DESKTOP
             </span>
             <span class="text-xs font-mono text-white/50">
-              {desktopShots.length} {$locale === 'zh' ? '张实机带标注截图 · 原生 Rust + Iced 跨平台桌面协签器' : 'ANNOTATED SHOTS · NATIVE RUST ICED DESKTOP CO-SIGNER'}
+              {desktopShots.length} {$locale === 'zh' ? '组操作 GIF 动图 · 原生 Rust + Iced 跨平台桌面协签器' : 'LIVE OPERATION GIFS · NATIVE RUST ICED DESKTOP CO-SIGNER'}
             </span>
           </div>
           <h2 class="text-2xl sm:text-4xl font-bold">
@@ -765,7 +765,7 @@
               CLIENT 03 · TERMINAL TUI
             </span>
             <span class="text-xs font-mono text-white/50">
-              {tuiShots.length} {$locale === 'zh' ? '张实机终端截图 · 极客 / SSH / 断网冷存专属' : 'REAL TERMINAL SHOTS · SSH & AIR-GAP COLD STORAGE'}
+              {tuiShots.length} {$locale === 'zh' ? '组终端操作 GIF 动图 · 极客 / SSH / 断网冷存专属' : 'TERMINAL OPERATION GIFS · SSH & AIR-GAP COLD STORAGE'}
             </span>
           </div>
           <h2 class="text-2xl sm:text-4xl font-bold">
@@ -812,7 +812,7 @@
               CLIENT 04 · HEADLESS CLI
             </span>
             <span class="text-xs font-mono text-white/50">
-              {cliShots.length} {$locale === 'zh' ? '张实机双节点协议日志截图 · 看清 2 轮 DKG 与 2 轮签名的每个字节' : 'REAL DUAL-NODE PROTOCOL TRACES · EVERY ROUND VISIBLE'}
+              {cliShots.length} {$locale === 'zh' ? '组双节点协议演示 GIF 动图 · 看清 2 轮 DKG 与 2 轮签名的每个字节' : 'DUAL-NODE PROTOCOL TRACE GIFS · EVERY ROUND VISIBLE'}
             </span>
           </div>
           <h2 class="text-2xl sm:text-4xl font-bold">

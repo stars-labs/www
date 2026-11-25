@@ -68,7 +68,7 @@ export const chainFamilies = [
 export const extensionShots: GuideShot[] = [
   {
     id: 'ext-01',
-    src: '/wallet-guide/ext-welcome.webp',
+    src: '/wallet-guide/ext-welcome.gif',
     alt: 'Starlab Chrome Extension Welcome Screen',
     device: 'extension',
     stepTag: 'EXT 01 · 初始化',
@@ -91,7 +91,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-02',
-    src: '/wallet-guide/ext-unlock-setup.webp',
+    src: '/wallet-guide/ext-unlock-setup.gif',
     alt: 'Protect this device with YubiKey or Password',
     device: 'extension',
     stepTag: 'EXT 02 · 解锁方式',
@@ -112,7 +112,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-03',
-    src: '/wallet-guide/ext-password-form.webp',
+    src: '/wallet-guide/ext-password-form.gif',
     alt: 'Local Password Creation Form',
     device: 'extension',
     stepTag: 'EXT 03 · 设密码',
@@ -133,7 +133,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-04',
-    src: '/wallet-guide/ext-onboarding.webp',
+    src: '/wallet-guide/ext-onboarding.gif',
     alt: 'Create shared wallet or Join a shared wallet',
     device: 'extension',
     stepTag: 'EXT 04 · 建库/加入',
@@ -154,7 +154,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-05',
-    src: '/wallet-guide/ext-hardware-options.webp',
+    src: '/wallet-guide/ext-hardware-options.gif',
     alt: 'More account options: Ledger WebHID, YubiKey, Simulation address',
     device: 'extension',
     stepTag: 'EXT 05 · 硬件兼容',
@@ -175,7 +175,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-06',
-    src: '/wallet-guide/ext-room-setup.webp',
+    src: '/wallet-guide/ext-room-setup.gif',
     alt: 'Signal Server Room ID Setup',
     device: 'extension',
     stepTag: 'EXT 06 · 房间号',
@@ -196,7 +196,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-07',
-    src: '/wallet-guide/ext-configure.webp',
+    src: '/wallet-guide/ext-configure.gif',
     alt: 'Configure 2-of-2 Multi-Chain MPC Wallet in Extension',
     device: 'extension',
     stepTag: 'EXT 07 · 门限配置',
@@ -221,7 +221,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-08',
-    src: '/wallet-guide/ext-share-room.webp',
+    src: '/wallet-guide/ext-share-room.gif',
     alt: 'Expanded Share room with devices panel',
     device: 'extension',
     stepTag: 'EXT 08 · 复制房号',
@@ -238,7 +238,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-09',
-    src: '/wallet-guide/ext-invite.webp',
+    src: '/wallet-guide/ext-invite.gif',
     alt: 'Invite Devices Waiting Room in Extension',
     device: 'extension',
     stepTag: 'EXT 09 · 等待入组',
@@ -255,7 +255,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-10',
-    src: '/wallet-guide/ext-dkg-progress.webp',
+    src: '/wallet-guide/ext-dkg-progress.gif',
     alt: 'Setup 3 of 3 Live DKG Key Generation in Extension',
     device: 'extension',
     stepTag: 'EXT 10 · 2轮DKG计算',
@@ -272,7 +272,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-11',
-    src: '/wallet-guide/ext-dkg-finish.webp',
+    src: '/wallet-guide/ext-dkg-finish.gif',
     alt: 'Finish wallet setup Encrypt and Save',
     device: 'extension',
     stepTag: 'EXT 11 · 加密落盘',
@@ -293,7 +293,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-12',
-    src: '/wallet-guide/ext-home.webp',
+    src: '/wallet-guide/ext-home.gif',
     alt: 'Starlab Extension Multi-Chain Dashboard',
     device: 'extension',
     stepTag: 'EXT 12 · 全链主页',
@@ -322,7 +322,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-13',
-    src: '/wallet-guide/ext-wallets.webp',
+    src: '/wallet-guide/ext-wallets.gif',
     alt: 'Select Wallet Multi-Vault Switcher',
     device: 'extension',
     stepTag: 'EXT 13 · 多金库',
@@ -339,7 +339,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-14',
-    src: '/wallet-guide/ext-settings-policy.webp',
+    src: '/wallet-guide/ext-settings-policy.gif',
     alt: 'Extension Settings Room, Connected dApps, Address Book, Spending Policy',
     device: 'extension',
     stepTag: 'EXT 14 · 风控设置',
@@ -360,7 +360,7 @@ export const extensionShots: GuideShot[] = [
   },
   {
     id: 'ext-15',
-    src: '/wallet-guide/ext-settings-backup.webp',
+    src: '/wallet-guide/ext-settings-backup.gif',
     alt: 'Extension Spending Policy and 3-File Encrypted Share Backup',
     device: 'extension',
     stepTag: 'EXT 15 · 限额与备份',
@@ -387,7 +387,7 @@ export const extensionShots: GuideShot[] = [
 export const desktopShots: GuideShot[] = [
   {
     id: 'desk-01',
-    src: '/wallet-guide/desktop-connection.webp',
+    src: '/wallet-guide/desktop-connection.gif',
     alt: 'Starlab Desktop Connection and Room Settings',
     device: 'desktop',
     stepTag: 'DESK 01 · 连接配对',
@@ -403,7 +403,7 @@ export const desktopShots: GuideShot[] = [
   },
   {
     id: 'desk-02',
-    src: '/wallet-guide/desktop-setup.webp',
+    src: '/wallet-guide/desktop-setup.gif',
     alt: 'Starlab Desktop Initial Set up wallet view',
     device: 'desktop',
     stepTag: 'DESK 02 · 建库入口',
@@ -418,7 +418,7 @@ export const desktopShots: GuideShot[] = [
   },
   {
     id: 'desk-03',
-    src: '/wallet-guide/desktop-invite-seen.webp',
+    src: '/wallet-guide/desktop-invite-seen.gif',
     alt: 'Starlab Desktop live incoming invite detected',
     device: 'desktop',
     stepTag: 'DESK 03 · 发现邀请',
@@ -432,7 +432,7 @@ export const desktopShots: GuideShot[] = [
   },
   {
     id: 'desk-04',
-    src: '/wallet-guide/desktop-join.webp',
+    src: '/wallet-guide/desktop-join.gif',
     alt: 'Starlab Desktop Join a wallet with password filled',
     device: 'desktop',
     stepTag: 'DESK 04 · 设密加入',
@@ -448,7 +448,7 @@ export const desktopShots: GuideShot[] = [
   },
   {
     id: 'desk-05',
-    src: '/wallet-guide/desktop-dkg.webp',
+    src: '/wallet-guide/desktop-dkg.gif',
     alt: 'Starlab Desktop DKG Round 1 of 2 progress',
     device: 'desktop',
     stepTag: 'DESK 05 · DKG 进度',
@@ -463,7 +463,7 @@ export const desktopShots: GuideShot[] = [
   },
   {
     id: 'desk-06',
-    src: '/wallet-guide/desktop-dkg-3peers.webp',
+    src: '/wallet-guide/desktop-dkg-3peers.gif',
     alt: 'Starlab Desktop multi-client 3-device roster (Desktop + TUI + Extension)',
     device: 'desktop',
     stepTag: 'DESK 06 · 跨端混编',
@@ -477,7 +477,7 @@ export const desktopShots: GuideShot[] = [
   },
   {
     id: 'desk-07',
-    src: '/wallet-guide/desktop-sign.webp',
+    src: '/wallet-guide/desktop-sign.gif',
     alt: 'Starlab Desktop Ethereum CGGMP24 Signing Form',
     device: 'desktop',
     stepTag: 'DESK 07 · 以太坊多签',
@@ -494,7 +494,7 @@ export const desktopShots: GuideShot[] = [
   },
   {
     id: 'desk-08',
-    src: '/wallet-guide/desktop-signing-waiting.webp',
+    src: '/wallet-guide/desktop-signing-waiting.gif',
     alt: 'Starlab Desktop waiting for second device approval',
     device: 'desktop',
     stepTag: 'DESK 08 · 等待协签',
@@ -509,7 +509,7 @@ export const desktopShots: GuideShot[] = [
   },
   {
     id: 'desk-09',
-    src: '/wallet-guide/desktop-sign-btc.webp',
+    src: '/wallet-guide/desktop-sign-btc.gif',
     alt: 'Starlab Desktop Bitcoin Taproot Signing and Single-Device Security Enforcement',
     device: 'desktop',
     stepTag: 'DESK 09 · BTC Taproot',
@@ -524,7 +524,7 @@ export const desktopShots: GuideShot[] = [
   },
   {
     id: 'desk-10',
-    src: '/wallet-guide/desktop-hd-account3.webp',
+    src: '/wallet-guide/desktop-hd-account3.gif',
     alt: 'Starlab Desktop HD Multi-Account Derivation Account 3',
     device: 'desktop',
     stepTag: 'DESK 10 · HD 多账户',
@@ -539,7 +539,7 @@ export const desktopShots: GuideShot[] = [
   },
   {
     id: 'desk-11',
-    src: '/wallet-guide/desktop-backup.webp',
+    src: '/wallet-guide/desktop-backup.gif',
     alt: 'Starlab Desktop Backup and Restore Encrypted Key Share',
     device: 'desktop',
     stepTag: 'DESK 11 · 加密备份',
@@ -561,7 +561,7 @@ export const desktopShots: GuideShot[] = [
 export const tuiShots: GuideShot[] = [
   {
     id: 'tui-01',
-    src: '/wallet-guide/tui-home.webp',
+    src: '/wallet-guide/tui-home.gif',
     alt: 'Starlab TUI Main Menu with Live 2-of-2 Wallet Loaded',
     device: 'tui',
     stepTag: 'TUI 01 · 主菜单',
@@ -576,7 +576,7 @@ export const tuiShots: GuideShot[] = [
   },
   {
     id: 'tui-02',
-    src: '/wallet-guide/tui-mode-select.webp',
+    src: '/wallet-guide/tui-mode-select.gif',
     alt: 'Starlab TUI Operation Mode Selection Online Hot vs Offline Air-Gap Cold',
     device: 'tui',
     stepTag: 'TUI 02 · 热/冷模式',
@@ -591,7 +591,7 @@ export const tuiShots: GuideShot[] = [
   },
   {
     id: 'tui-03',
-    src: '/wallet-guide/tui-threshold-config.webp',
+    src: '/wallet-guide/tui-threshold-config.gif',
     alt: 'Starlab TUI Threshold Configuration 2-of-3 with Security Level Bar',
     device: 'tui',
     stepTag: 'TUI 03 · 门限配置',
@@ -606,7 +606,7 @@ export const tuiShots: GuideShot[] = [
   },
   {
     id: 'tui-04',
-    src: '/wallet-guide/tui-manage-wallets.webp',
+    src: '/wallet-guide/tui-manage-wallets.gif',
     alt: 'Starlab TUI Manage Wallets Multi-Chain Addresses',
     device: 'tui',
     stepTag: 'TUI 04 · 钱包详情',
@@ -621,7 +621,7 @@ export const tuiShots: GuideShot[] = [
   },
   {
     id: 'tui-05',
-    src: '/wallet-guide/tui-sign-form.webp',
+    src: '/wallet-guide/tui-sign-form.gif',
     alt: 'Starlab TUI Sign Transaction Screen',
     device: 'tui',
     stepTag: 'TUI 05 · 终端签发',
@@ -636,7 +636,7 @@ export const tuiShots: GuideShot[] = [
   },
   {
     id: 'tui-06',
-    src: '/wallet-guide/tui-export-backup.webp',
+    src: '/wallet-guide/tui-export-backup.gif',
     alt: 'Starlab TUI Export Encrypted Key Share Backup',
     device: 'tui',
     stepTag: 'TUI 06 · 终端备份',
@@ -656,7 +656,7 @@ export const tuiShots: GuideShot[] = [
 export const cliShots: GuideShot[] = [
   {
     id: 'cli-01',
-    src: '/wallet-guide/cli-dkg-2rounds.webp',
+    src: '/wallet-guide/cli-dkg-2rounds.gif',
     alt: 'Starlab CLI Real 2-of-2 DKG Round 1 and Round 2 Output',
     device: 'cli',
     stepTag: 'CLI 01 · 2轮DKG全日志',
@@ -673,7 +673,7 @@ export const cliShots: GuideShot[] = [
   },
   {
     id: 'cli-02',
-    src: '/wallet-guide/cli-hd-accounts.webp',
+    src: '/wallet-guide/cli-hd-accounts.gif',
     alt: 'Starlab CLI Public-Only HD Multi-Account Derivation',
     device: 'cli',
     stepTag: 'CLI 02 · HD 多账户',
@@ -689,7 +689,7 @@ export const cliShots: GuideShot[] = [
   },
   {
     id: 'cli-03',
-    src: '/wallet-guide/cli-sign-2rounds.webp',
+    src: '/wallet-guide/cli-sign-2rounds.gif',
     alt: 'Starlab CLI Real 2-of-2 Threshold Signing Round 1 and Round 2',
     device: 'cli',
     stepTag: 'CLI 03 · 2轮多签全日志',
@@ -706,7 +706,7 @@ export const cliShots: GuideShot[] = [
   },
   {
     id: 'cli-04',
-    src: '/wallet-guide/cli-reshare-broadcast.webp',
+    src: '/wallet-guide/cli-reshare-broadcast.gif',
     alt: 'Starlab CLI Reshare Key Rotation and On-Chain Transaction Broadcast',
     device: 'cli',
     stepTag: 'CLI 04 · 刷新分片与广播',

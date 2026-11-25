@@ -28,7 +28,8 @@
   export let callouts: Callout[] = [];
   export let aspectHint: string = '';
 
-  let showAnnotations = true;
+  $: isGif = src.endsWith('.gif');
+  let showAnnotations = !src.endsWith('.gif');
   let activeId: number | null = null;
   let lightboxOpen = false;
 
@@ -110,6 +111,14 @@
           Headless CLI
         </span>
       {/if}
+      {#if isGif}
+        <span
+          class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-brand-neon/15 text-brand-neon border border-brand-neon/35 shrink-0"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-brand-neon animate-pulse"></span>
+          GIF
+        </span>
+      {/if}
       {#if title}
         <span class="text-xs font-medium text-white/75 truncate">{title}</span>
       {/if}
@@ -126,11 +135,11 @@
         >
           {showAnnotations
             ? $locale === 'zh'
-              ? '隐藏标注'
-              : 'Hide Callouts'
+              ? '隐藏框'
+              : 'Hide Boxes'
             : $locale === 'zh'
-              ? '显示标注'
-              : 'Show Callouts'}
+              ? '固定标注框'
+              : 'Pin Boxes'}
         </button>
       {/if}
       <button
@@ -154,16 +163,24 @@
       class="relative {device === 'extension' ? 'w-full max-w-[360px] rounded-xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.65)] ring-1 ring-white/15' : 'w-full rounded-lg overflow-hidden'}"
       style={aspectHint ? `aspect-ratio: ${aspectHint};` : ''}
     >
-      <img
-        {src}
-        {alt}
-        loading="lazy"
-        class="block w-full h-auto select-none"
-      />
+      <button
+        type="button"
+        on:click={() => (lightboxOpen = true)}
+        class="block w-full cursor-zoom-in text-left"
+        aria-label={title || alt}
+      >
+        <img
+          {src}
+          {alt}
+          loading="lazy"
+          class="block w-full h-auto select-none"
+        />
+      </button>
 
-      {#if showAnnotations && callouts.length > 0}
+      {#if (showAnnotations || activeId !== null) && callouts.length > 0}
         <div class="absolute inset-0 pointer-events-none">
           {#each callouts as c (c.id)}
+            {#if showAnnotations || activeId === c.id}
             {@const tone = getTone(c.tone)}
             {@const pos = badgePos(c)}
             {@const isActive = activeId === c.id}
@@ -203,6 +220,7 @@
             >
               {c.id}
             </button>
+            {/if}
           {/each}
         </div>
       {/if}
