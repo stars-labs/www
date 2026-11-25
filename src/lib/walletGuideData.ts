@@ -867,6 +867,78 @@ Therefore, Starlab uses CGGMP24 for native 0x EOA accounts (zero deployment cost
 • 底层直接复用 starlab-core 同源 Rust frost-core 3.0 引擎，已通过与软件节点的 2-of-3 真实混签测试（BTC Taproot / Solana / Sui）。`,
   },
   {
+    qEn: 'What if StarsLab shuts down or the signal server goes offline? Will my funds be trapped?',
+    qZh: '如果 StarsLab 团队停服、官网或信令服务器挂了，我的资产还能取出来吗？',
+    aEn: `100% yes — zero vendor lock-in!
+
+• The Signal Server is only a dumb WebRTC handshake relay; it NEVER stores any key shares, passwords, or custody permissions.
+• All 3 repositories (core crypto engine, Desktop, Extension, TUI/CLI, and the signal server itself) are 100% open-source on GitHub.
+• Even if every public server disappeared tomorrow, you have two immediate escape hatches:
+  1) Run your own local signal server in 10 seconds using the prebuilt starlab-signal-server binary (LAN or your own Cloudflare Worker), point your devices to it, and sign normally;
+  2) Switch Desktop/TUI to Air-Gap SD Card Offline Mode and sign with ZERO internet connection.`,
+    aZh: `100% 拿得出来，彻底零平台锁定！
+
+• 信令服务器（Signal Server）只负责撮合设备之间的 WebRTC 握手，完全不存任何密钥分片、密码或资产权限；
+• 核心引擎、桌面端、浏览器插件、TUI/CLI 以及信令服务器本身全部在 GitHub 100% 开源；
+• 哪怕官方服务明天彻底下线，你随时有两条独立逃生通道：
+  1) 10 秒内在本机/局域网运行开源的 starlab-signal-server（或部署到自己的 Cloudflare Workers），各端填入自建地址即可照常多签转出；
+  2) 使用桌面端 / TUI 的离线 SD 卡气隙模式，全程断网完成多签并把签名提交给任意公链 RPC 节点广播！`,
+  },
+  {
+    qEn: 'Should I choose 2-of-2 or 2-of-3? What device setup is best for my funds?',
+    qZh: '2-of-2 和 2-of-3 怎么选？不同资金量怎么搭配设备最稳？',
+    aEn: `Pick your threshold based on fund size and availability needs:
+
+• Everyday / Getting Started (2-of-2): Chrome Extension + Starlab Desktop. Fast two-click signing — just make sure both encrypted share backups are stored on separate offline USB drives (in 2-of-2, losing one device without a backup locks the vault).
+• Serious Personal Vault (2-of-3 · Recommended ⭐): Chrome Extension (daily initiator) + Desktop / second laptop (daily co-signer) + offline spare PC / TUI / ~$8 ESP32 Hardware Share (cold recovery). Losing or breaking any 1 device never freezes your funds, and hacking any 1 device steals nothing.
+• Team / DAO Treasury (2-of-3 or 3-of-5): Each signer holds 1 share on their own Desktop/CLI/Extension — zero on-chain signer exposure and ~70%+ lower Gas than contract multisigs.`,
+    aZh: `按资金规模直接抄作业：
+
+• 新手体验 / 日常小额（2-of-2）：Chrome 插件 + Starlab Desktop 桌面端。操作最快，但注意 2-of-2 任意一台损坏且无备份会导致凑不够 2 份，务必把两台设备的加密分片分别备份到不同 U 盘；
+• 主力大额金库（2-of-3 · 最推荐 ⭐）：Chrome 插件（日常连 dApp 发起）+ 桌面端/备用电脑（主力协签）+ 离线备用机 / 树莓派 TUI / ¥60 开源 ESP32 硬件分片（冷备）。任意坏/丢 1 台照常动用资产，任意被黑 1 台也 1 分钱都盗不走；
+• 团队 / DAO 金库（2-of-3 或 3-of-5）：成员各自独立持 1 份分片，链上不暴露管理员身份，比合约多签省 70%+ Gas。`,
+  },
+  {
+    qEn: 'Why does EVM DKG take 1–2 minutes for "Secure setup"? Does every transaction take that long?',
+    qZh: '为什么新建 EVM 金库时要等 1~2 分钟「Secure setup」？以后每次转账也要等这么久吗？',
+    aEn: `No — everyday signing only takes a few seconds!
+
+• The 1–2 minute wait is a one-time Paillier 3072-bit safe-prime generation required by CGGMP24 threshold ECDSA so signers can mathematically prove no peer is cheating during keygen.
+• Starlab automatically pre-generates safe primes in the background as soon as you open the app and caches them encrypted.
+• Once your vault is created, daily EVM transfers and dApp approvals NEVER regenerate primes — signing completes in seconds and broadcasts immediately.`,
+    aZh: `完全不用！日常转账和 dApp 签名只需几秒钟！
+
+• 建库时那 1~2 分钟是一次性的 3072-bit Paillier 安全素数预生成（CGGMP24 门限 ECDSA 用于生成零知识防作弊证明的数学底座）；
+• 打开桌面端或插件时，软件会在后台自动预生成并加密缓存，下次建库可秒速复用；
+• 钱包建好之后，以后每次以太坊/L2 转账、Swap、授权都不需要重新生成素数，两台设备点确认后几秒即可签完并广播上链！`,
+  },
+  {
+    qEn: 'Can I import my existing MetaMask/Ledger seed phrase into MPC, or should I create a fresh vault?',
+    qZh: '能把现有的 MetaMask / Ledger 助记词导入转成 MPC 吗？还是建议新建金库？',
+    aEn: `Always create a brand-new DKG vault and transfer funds in — never import an old seed phrase into MPC!
+
+• If a private key ever existed as a plaintext 12/24-word seed on one device or piece of paper, it permanently loses MPC’s core guarantee that the full private key never existed anywhere.
+• Best migration workflow: (1) Create a fresh 2-of-3 vault in 5 minutes; (2) Test a tiny $5–$10 deposit + withdrawal end-to-end; (3) Move main funds over in batches.
+• Bonus: If you already use Ledger, connect it directly inside Starlab Chrome Extension via WebHID to manage your Ledger accounts alongside your new MPC vault.`,
+    aZh: `强烈建议新建纯 DKG 金库再把币转进去，不要把旧助记词拆片导入！
+
+• 只要一把私钥曾经以 12/24 词助记词形态在单台电脑或纸上完整出现过，就可能已被留痕，失去了 MPC「私钥自始至终从未完整存在过」的核心安全红利；
+• 推荐迁移步骤：① 花 5 分钟建好全新 2-of-3 金库并分别导出加密备份；② 先转入几 U 测试「收款 → 2 轮多签 → 广播上链」全闭环；③ 验证无误后再分批转入主力资金；
+• 如果你手里有 Ledger，可以直接在 Starlab Chrome 插件中通过 WebHID 直连旧 Ledger 账户同屏管理，平滑迁移到新 MPC 金库。`,
+  },
+  {
+    qEn: 'How can I verify the downloads have no backdoor, and what if my browser gets malware?',
+    qZh: '怎么确认下载的安装包没有后门？万一装了插件的电脑中木马会被盗币吗？',
+    aEn: `Two independent layers protect you:
+
+1. Transparent, verifiable open-source releases: Every macOS, Windows, Linux, Chrome, Edge, and Firefox package is built directly from public GitHub repositories via public GitHub Actions CI/CD workflows, published alongside SHA256SUMS.txt checksums (and you can always build from source yourself).
+2. Malware containment by design: Even if malware fully compromises your browser PC and steals your Extension’s share, 1 share alone cannot sign anything. Plus, the Extension includes local Spending Policies (per-tx / daily caps & contract guardrails), while your second co-signer (Desktop / TUI / ESP32 hardware share) independently displays the transaction before you approve it.`,
+    aZh: `由两层硬防线共同兜底：
+
+1. 100% 开源透明构建：macOS / Windows / Linux / Chrome / Edge / Firefox 全部安装包均由公开 GitHub 仓库的 GitHub Actions 流水线自动编译产出，随 Release 附带 SHA256SUMS.txt 哈希校验文件；代码完全公开，进阶用户也可一键本地从源码自行编译。
+2. 单机中木马也盗不走币：首先插件内置「签前风控限额（Spending Policy）」拦截超额和异常合约调用；退一万步即使浏览器所在电脑被木马彻底接管，黑客最多拿到 1 份分片，依然无法凑齐门限签名——必须经过另一台独立设备（桌面端 / TUI / ESP32 硬件分片）核对收款地址与金额并手动确认才能生效！`,
+  },
+  {
     qEn: 'What happens if I lose one device or want to rotate key shares?',
     qZh: '丢了一台设备怎么办？可以不换地址刷新分片（Reshare）吗？',
     aEn: 'First, always export each device’s encrypted backup (Extension Settings → Backup, Desktop Backup & restore, or TUI e key) to separate offline drives so you can restore on a new device immediately. Second, for high-value funds create a 2-of-3 vault so losing any single device never freezes your assets. Third, for FROST keys (Bitcoin Taproot, Solana, Sui, Aptos), starlab-cli reshare lets you rotate shares proactively WITHOUT changing your wallet address!',
