@@ -942,7 +942,7 @@
               </span>
             </button>
             {#if openFaq === idx}
-              <div class="px-6 pb-5 text-sm text-white/70 leading-relaxed border-t border-white/8 pt-3.5">
+              <div class="px-6 pb-5 text-sm text-white/75 leading-relaxed border-t border-white/8 pt-3.5 whitespace-pre-line">
                 {$locale === 'zh' ? item.aZh : item.aEn}
               </div>
             {/if}

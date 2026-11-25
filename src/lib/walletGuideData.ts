@@ -801,6 +801,72 @@ export const faqs = [
     aZh: '① DKG 只在【新建钱包时】跑一次，两轮算出各自加密分片与全链收款地址；② 门限多签在【每次转账/授权时】触发，任意 t 台设备核对金额和地址后跑两轮算出标准签名；③ 广播紧跟【签完名之后】，把带签名的原始交易提交给区块链 RPC 节点打包上链。用 Chrome 插件转账或连 dApp 时，签完名插件会自动帮你广播并返回 Tx Hash。',
   },
   {
+    qEn: 'How many random seeds and key shares does each device hold to support 100+ chains and unlimited wallets?',
+    qZh: '要支持全行业 100+ 公链和无限钱包，每台设备有几个随机种子？为什么最终存 3 份独立分片？',
+    aEn: `Short answer: 1 root random seed at creation time, and 3 isolated encrypted key shares persisted on disk (bundled inside one encrypted backup) — covering 100+ chains and unlimited HD accounts with zero extra DKG rounds!
+
+1. At creation (entropy source): Each device needs only ONE 32-byte RootSecret, expanded via domain-separated HKDF-SHA256 to seed per-curve DKG randomness.
+
+2. Persisted on each device (3 isolated shares → all major ecosystems via additive BIP-44/86 HD derivation):
+• Share #1 · secp256k1-ecdsa (CGGMP24 Threshold ECDSA + Paillier aux-info): Derives m/44'/60'/0'/0/n for Ethereum and ALL 100+ EVM chains (Arbitrum, Base, OP, Polygon, BSC, Avalanche, custom RPCs…).
+• Share #2 · secp256k1 (FROST BIP-340 Taproot): Derives m/86'/0'/0'/0/n for native Bitcoin Taproot (bc1p…) accounts.
+• Share #3 · ed25519 (FROST Ed25519): Derives BIP-44 accounts for Solana, Sui, Aptos, and the Ed25519 ecosystem.
+
+3. Why 3 shares instead of merging #1 & #2 into 2? Even though ECDSA and Taproot Schnorr share the secp256k1 curve, reusing one private key across different signature schemes introduces cross-protocol attack surfaces (and FROST supports address-preserving share refresh while CGGMP24 does not). Keeping 3 isolated shares is the cryptographically sound design.
+
+4. Crucial backup rule — why a single seed alone CANNOT recover your MPC share: In dealerless DKG, your finalized share is a joint function of ALL n devices' transcripts, not just your local seed. Always back up the encrypted keystore file + password (and use 2-of-3 so losing one device never freezes funds).`,
+    aZh: `一句话结论：建库时逻辑上只需 1 个 32 字节根随机种子；落盘后每台设备保存 3 份独立的加密分片（打包在同一个加密备份里），就能覆盖全行业 100+ 公链与无限个子地址，无需为每条链或每个新钱包重跑 DKG！
+
+【1】建库阶段（熵源）：每台设备只需 1 个 32 字节 RootSecret，通过 HKDF-SHA256 域分离派生各曲线的确定性随机流。
+
+【2】落盘保存（3 份独立分片 + BIP-44/86 无交互加法 HD 派生）：
+• 分片 #1 · secp256k1-ecdsa（CGGMP24 门限 ECDSA + Paillier 参数）：通过 m/44'/60'/0'/0/n 无限派生，覆盖以太坊及全部 100+ EVM 链（ARB / OP / Base / Polygon / BSC / Avalanche 及任意自定义 RPC）。
+• 分片 #2 · secp256k1（FROST BIP-340 Taproot）：通过 m/86'/0'/0'/0/n 无限派生，覆盖比特币原生 Taproot（bc1p…）账户。
+• 分片 #3 · ed25519（FROST Ed25519）：通过 BIP-44 无限派生，覆盖 Solana、Sui、Aptos 及 Ed25519 生态公链。
+
+【3】为什么不把 #1 和 #2 合并成 2 份？
+虽然都在 secp256k1 曲线上，但密码学工程严禁跨签名算法（ECDSA 与 Schnorr）复用同一私钥，避免跨协议攻击面；同时 FROST 支持不换地址的 Reshare 轮换分片，而 CGGMP24 不支持，因此 Starlab 刻意隔离为 3 份独立分片，安全性最高。
+
+【4】重要提醒——为什么不能只背 1 个随机种子来恢复？
+在无中心（Dealerless）DKG 中，你最终落盘的秘密分片是由全部 n 台设备共同交互算出的（share_i = f(你的种子, 其余 n-1 台设备的交互包)），单背自己的种子还原不出分片！正确做法是备份「加密 Keystore 分片文件 + 密码」，大额资产强烈建议用 2-of-3 架构。`,
+  },
+  {
+    qEn: 'Isn’t Ethereum also on secp256k1? Why use CGGMP24 instead of FROST (or frost-secp256k1 / PR #749)?',
+    qZh: '以太坊不是也用 secp256k1 吗？为什么不用 FROST，而要用 CGGMP24？社区的 frost-secp256k1 / PR #749 呢？',
+    aEn: `Great question — people often confuse the curve name (secp256k1) with the signature algorithm (ECDSA vs Schnorr):
+
+• FROST is a threshold Schnorr protocol (linear formula s = k + e·x), ideal for Bitcoin Taproot (BIP-340) and Solana/Sui (Ed25519). Even ZcashFoundation’s frost-secp256k1 crate explicitly states in line 1 of its README that it produces generic Schnorr signatures (not ECDSA, and not even BIP-340 Taproot).
+• Ethereum’s native EOA (0x…) consensus & ecrecover ONLY accept ECDSA (r, s, v), whose equation s = k⁻¹(H(m) + r·x) multiplies two secret-shared values nonlinearly — requiring a Threshold ECDSA protocol like CGGMP24.
+• What about frost-secp256k1-evm (ZcashFoundation/frost PR #749 / draft ERC-7816)? That unmerged proposal swaps SHA-256 for Keccak-256 so a Solidity smart contract (ERC-4337 / Safe / EIP-7702) can verify Schnorr via an ecrecover trick (~3k–8k gas). It CANNOT sign native EOA transactions without deploying a smart contract.
+
+Therefore, Starlab uses CGGMP24 for native 0x EOA accounts (zero deployment cost, lowest gas, 100% compatibility across 100+ EVM chains) and FROST for Taproot & Ed25519 chains.`,
+    aZh: `这是 Web3 密码学里最容易混淆的一点——很多人把「椭圆曲线名（secp256k1）」当成了「签名算法」：
+
+• 同一条 secp256k1 曲线上，有 3 种互不兼容的签名体制：
+  1) frost-secp256k1（官方库 README 第一句即写明是 RFC 9591 通用 Schnorr，以太坊 EOA 不认，连 BTC Taproot 也不认）；
+  2) frost-secp256k1-tr（BIP-340 Taproot Schnorr，仅比特币 Taproot 原生认，以太坊 EOA 仍不认）；
+  3) 原生 ECDSA (r, s, v)：以太坊及所有 EVM 链的底层 ecrecover 只认 ECDSA！因为 ECDSA 公式含非线性项 s = k⁻¹(H(m) + r·x)，无法用线性 FROST 计算，必须使用 CGGMP24 门限 ECDSA。
+
+• 那社区的 frost-secp256k1-evm（PR #749 / ERC-7816 草案）呢？
+  该 PR 未被官方合并，其原理是换用 Keccak-256 哈希，在 Solidity 智能合约中用 ecrecover 技巧低成本验签 Schnorr——只能用于 ERC-4337 / Safe / EIP-7702 智能合约金库，无法直接签原生 EOA 交易。
+
+因此 Starlab 采用双引擎原生适配：原生 0x 账户用 CGGMP24（零合约部署、最低 Gas、100+ EVM 链与交易所 100% 通用），BTC Taproot 与 Solana/Sui 用 2 轮 FROST 秒签！`,
+  },
+  {
+    qEn: 'Can I build a low-cost (~$8) open-source ESP32 hardware share instead of buying a $150 hardware wallet?',
+    qZh: '不想花上千元买封闭硬件钱包，能用几十块的 ESP32 自制开源硬件分片吗？',
+    aEn: `Yes! Starlab ships an open-source ESP32-S3 / ESP32-C3 hardware share design ("Starlab Key", SLHW v1 protocol) inside the starlab-mpc repo (docs/ESP32_HARDWARE_SHARE.md & hardware/esp32-share):
+
+• $3.5–$12 off-the-shelf boards with zero soldering (recommended: LilyGO T-Display-S3 ~$8 with 1.9" IPS screen + 2 physical Approve/Reject buttons, or CYD-S3 with MicroSD slot for full air-gap).
+• Because it holds only 1 share in a 2-of-3 vault, even physical flash extraction leaks 0 bits of your private key; meanwhile physical Clear-Signing buttons block silent PC malware, and 10 wrong PIN attempts trigger irreversible Flash wipe.
+• Runs the exact same audited Rust frost-core 3.0 stack as starlab-core (verified end-to-end with mixed 2-of-3 Bitcoin Taproot, Solana & Sui signing tests).`,
+    aZh: `完全可以！starlab-mpc 仓库已开源低成本 ESP32 硬件分片方案「Starlab Key」（详见仓库 docs/ESP32_HARDWARE_SHARE.md 与 hardware/esp32-share）：
+
+• 成本仅 ¥25–¥75（$3.5–$10），推荐免焊接现货板 LilyGO T-Display-S3（约 ¥60，自带 1.9 寸彩屏 + 左右物理确认/拒绝键 + USB-C）或带 MicroSD 卡槽的 CYD-S3 全气隙版；
+• 即使整块 ESP32 丢失或被物理拆解读取 Flash，单份门限分片泄露 0 bit 私钥；日常签名时屏幕明文显示链/地址/摘要，必须按物理按键才能放行，彻底拦截电脑木马静默盗签；连续输错 10 次 PIN 自动自毁擦除；
+• 底层直接复用 starlab-core 同源 Rust frost-core 3.0 引擎，已通过与软件节点的 2-of-3 真实混签测试（BTC Taproot / Solana / Sui）。`,
+  },
+  {
     qEn: 'What happens if I lose one device or want to rotate key shares?',
     qZh: '丢了一台设备怎么办？可以不换地址刷新分片（Reshare）吗？',
     aEn: 'First, always export each device’s encrypted backup (Extension Settings → Backup, Desktop Backup & restore, or TUI e key) to separate offline drives so you can restore on a new device immediately. Second, for high-value funds create a 2-of-3 vault so losing any single device never freezes your assets. Third, for FROST keys (Bitcoin Taproot, Solana, Sui, Aptos), starlab-cli reshare lets you rotate shares proactively WITHOUT changing your wallet address!',
