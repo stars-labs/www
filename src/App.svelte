@@ -70,49 +70,102 @@
 {/if}
 
 <nav
-  class="fixed top-0 left-0 right-0 backdrop-blur bg-black/40 border-b border-white/10"
+  class="fixed top-0 left-0 right-0 backdrop-blur bg-black/55 border-b border-white/10"
   style="z-index: 100;"
 >
   <div
     class="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between"
   >
-    <button 
-      on:click={() => handleNavigate('home')}
-      class="flex items-center gap-2 font-semibold tracking-wide cursor-pointer"
-    >
-      <img src={faviconUrl} alt="StarsLab" class="w-8 h-8" />
-      <span class="gradient-text text-lg">StarsLab</span>
-    </button>
+    {#if $currentRoute === 'wallet'}
+      <button
+        on:click={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        class="flex items-center gap-2 font-semibold tracking-wide cursor-pointer"
+      >
+        <img src={faviconUrl} alt="Starlab Wallet" class="w-8 h-8" />
+        <span class="gradient-text text-lg">Starlab Wallet</span>
+      </button>
+    {:else}
+      <button
+        on:click={() => handleNavigate('home')}
+        class="flex items-center gap-2 font-semibold tracking-wide cursor-pointer"
+      >
+        <img src={faviconUrl} alt="StarsLab" class="w-8 h-8" />
+        <span class="gradient-text text-lg">StarsLab</span>
+      </button>
+    {/if}
     
     <!-- Desktop Navigation -->
-    <ul class="hidden md:flex gap-8 text-sm items-center">
-      {#if $currentRoute === 'home'}
-        {#each nav as n}
-          <li>
-            <button
-              on:click={() => scrollToId(n.id)}
-              class="text-white/70 hover:text-brand-accent transition"
-              >{n.label}</button
-            >
-          </li>
-        {/each}
+    <ul class="hidden md:flex gap-7 text-sm items-center">
+      {#if $currentRoute === 'wallet'}
+        <li>
+          <button
+            on:click={() => scrollToId('playground')}
+            class="text-brand-neon hover:brightness-125 font-semibold transition cursor-pointer"
+          >
+            {$locale === 'zh' ? '⚡ 在线 WASM 体验' : '⚡ Live Sandbox'}
+          </button>
+        </li>
+        <li>
+          <button
+            on:click={() => scrollToId('chains')}
+            class="text-white/75 hover:text-white transition cursor-pointer"
+          >
+            {$locale === 'zh' ? '全链支持' : 'Chains'}
+          </button>
+        </li>
+        <li>
+          <button
+            on:click={() => scrollToId('client-atlas')}
+            class="text-white/75 hover:text-white transition cursor-pointer"
+          >
+            {$locale === 'zh' ? '操作动图' : 'GIF Guide'}
+          </button>
+        </li>
+        <li>
+          <button
+            on:click={() => scrollToId('faq')}
+            class="text-white/75 hover:text-white transition cursor-pointer"
+          >
+            FAQ
+          </button>
+        </li>
+        <li>
+          <a
+            href="https://starslab.qzz.io"
+            class="text-white/55 hover:text-white transition"
+          >
+            StarsLab &nearr;
+          </a>
+        </li>
+      {:else}
+        {#if $currentRoute === 'home'}
+          {#each nav as n}
+            <li>
+              <button
+                on:click={() => scrollToId(n.id)}
+                class="text-white/70 hover:text-brand-accent transition cursor-pointer"
+                >{n.label}</button
+              >
+            </li>
+          {/each}
+        {/if}
+        <li>
+          <a
+            href="https://wallet.starslab.qzz.io"
+            class="text-white/75 hover:text-brand-accent transition font-medium"
+          >
+            {$t('nav.wallet')} &nearr;
+          </a>
+        </li>
+        <li>
+          <button
+            on:click={() => handleNavigate('explorer')}
+            class="text-white/70 hover:text-brand-accent transition cursor-pointer {$currentRoute === 'explorer' ? 'text-brand-accent font-semibold' : ''}"
+          >
+            {$t('nav.explorer')}
+          </button>
+        </li>
       {/if}
-      <li>
-        <button
-          on:click={() => handleNavigate('wallet')}
-          class="text-white/70 hover:text-brand-accent transition cursor-pointer {$currentRoute === 'wallet' ? 'text-brand-accent font-semibold' : ''}"
-        >
-          {$t('nav.wallet')}
-        </button>
-      </li>
-      <li>
-        <button
-          on:click={() => handleNavigate('explorer')}
-          class="text-white/70 hover:text-brand-accent transition cursor-pointer {$currentRoute === 'explorer' ? 'text-brand-accent' : ''}"
-        >
-          {$t('nav.explorer')}
-        </button>
-      </li>
       <li>
         <button
           on:click={toggleLocale}
@@ -124,8 +177,17 @@
     </ul>
 
     <!-- Desktop CTA -->
-    <div class="hidden md:flex gap-4">
-      {#if $currentRoute === 'explorer' || $currentRoute === 'wallet'}
+    <div class="hidden md:flex gap-3 items-center">
+      {#if $currentRoute === 'wallet'}
+        <a
+          href="https://github.com/stars-labs/starlab-desktop/releases/latest"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="px-4 py-2 rounded-md bg-brand-accent text-white text-sm font-semibold hover:brightness-110 transition"
+        >
+          {$locale === 'zh' ? '下载客户端' : 'Download'} &nearr;
+        </a>
+      {:else if $currentRoute === 'explorer'}
         <button
           on:click={() => handleNavigate('home')}
           class="px-4 py-2 rounded-md border border-brand-accent text-brand-accent text-sm font-medium hover:bg-brand-accent hover:text-black transition cursor-pointer"
@@ -166,28 +228,46 @@
   {#if mobileMenuOpen}
     <div class="md:hidden absolute top-16 left-0 right-0 bg-black/95 backdrop-blur border-b border-white/10">
       <div class="px-6 py-4 space-y-3">
-        {#if $currentRoute === 'home'}
-          {#each nav as n}
-            <button
-              on:click={() => scrollToId(n.id)}
-              class="block w-full text-left text-white/70 hover:text-brand-accent transition py-2"
-            >
-              {n.label}
-            </button>
-          {/each}
+        {#if $currentRoute === 'wallet'}
+          <button on:click={() => scrollToId('playground')} class="block w-full text-left text-brand-neon font-semibold py-2">
+            {$locale === 'zh' ? '⚡ 在线 WASM 体验' : '⚡ Live WASM Sandbox'}
+          </button>
+          <button on:click={() => scrollToId('chains')} class="block w-full text-left text-white/75 hover:text-white py-2">
+            {$locale === 'zh' ? '全链支持' : 'All Chains'}
+          </button>
+          <button on:click={() => scrollToId('client-atlas')} class="block w-full text-left text-white/75 hover:text-white py-2">
+            {$locale === 'zh' ? '四端操作动图' : 'Operation GIFs'}
+          </button>
+          <button on:click={() => scrollToId('faq')} class="block w-full text-left text-white/75 hover:text-white py-2">
+            FAQ
+          </button>
+          <a href="https://starslab.qzz.io" class="block w-full text-left text-white/55 hover:text-white py-2">
+            {$locale === 'zh' ? 'StarsLab 实验室官网' : 'StarsLab Home'} &nearr;
+          </a>
+        {:else}
+          {#if $currentRoute === 'home'}
+            {#each nav as n}
+              <button
+                on:click={() => scrollToId(n.id)}
+                class="block w-full text-left text-white/70 hover:text-brand-accent transition py-2"
+              >
+                {n.label}
+              </button>
+            {/each}
+          {/if}
+          <a
+            href="https://wallet.starslab.qzz.io"
+            class="block w-full text-left text-white/75 hover:text-brand-accent transition py-2"
+          >
+            {$t('nav.wallet')} &nearr;
+          </a>
+          <button
+            on:click={() => handleNavigate('explorer')}
+            class="block w-full text-left text-white/70 hover:text-brand-accent transition py-2 {$currentRoute === 'explorer' ? 'text-brand-accent' : ''}"
+          >
+            {$t('nav.explorer')}
+          </button>
         {/if}
-        <button
-          on:click={() => handleNavigate('wallet')}
-          class="block w-full text-left text-white/70 hover:text-brand-accent transition py-2 {$currentRoute === 'wallet' ? 'text-brand-accent font-semibold' : ''}"
-        >
-          {$t('nav.wallet')}
-        </button>
-        <button
-          on:click={() => handleNavigate('explorer')}
-          class="block w-full text-left text-white/70 hover:text-brand-accent transition py-2 {$currentRoute === 'explorer' ? 'text-brand-accent' : ''}"
-        >
-          {$t('nav.explorer')}
-        </button>
         <div class="pt-3 border-t border-white/10 flex items-center justify-between">
           <button
             on:click={toggleLocale}
@@ -195,7 +275,16 @@
           >
             {$locale === 'en' ? '中文' : 'English'}
           </button>
-          {#if $currentRoute === 'explorer' || $currentRoute === 'wallet'}
+          {#if $currentRoute === 'wallet'}
+            <a
+              href="https://github.com/stars-labs/starlab-desktop/releases/latest"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="px-4 py-2 rounded-md bg-brand-accent text-white text-sm font-medium hover:brightness-110"
+            >
+              {$locale === 'zh' ? '下载客户端' : 'Download'} &nearr;
+            </a>
+          {:else if $currentRoute === 'explorer'}
             <button
               on:click={() => handleNavigate('home')}
               class="px-4 py-2 rounded-md border border-brand-accent text-brand-accent text-sm font-medium hover:bg-brand-accent hover:text-black transition"

@@ -22,12 +22,19 @@ type Variables = {
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-// Canonicalize www.starslab.qzz.io -> starslab.qzz.io (preserving path & query)
+// Canonicalize hosts and keep wallet.starslab.qzz.io cleanly separated from starslab.qzz.io
 app.use("*", async (c, next) => {
   const url = new URL(c.req.url);
   if (url.hostname === "www.starslab.qzz.io") {
     url.hostname = "starslab.qzz.io";
     return c.redirect(url.toString(), 301);
+  }
+  if (url.hostname === "wallet.starslab.qzz.io" && (url.pathname === "/explorer" || url.pathname.startsWith("/explorer/"))) {
+    url.hostname = "starslab.qzz.io";
+    return c.redirect(url.toString(), 301);
+  }
+  if (url.hostname === "starslab.qzz.io" && (url.pathname === "/wallet" || url.pathname.startsWith("/wallet/"))) {
+    return c.redirect("https://wallet.starslab.qzz.io/", 301);
   }
   await next();
 });

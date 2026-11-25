@@ -9,9 +9,15 @@ function isWalletHost(): boolean {
 export const currentRoute = writable<Route>(isWalletHost() ? 'wallet' : 'home');
 
 export function navigateTo(route: Route) {
-  if (isWalletHost() && route === 'home' && window.location.hostname === 'wallet.starslab.qzz.io') {
-    window.location.href = 'https://starslab.qzz.io/';
-    return;
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname === 'wallet.starslab.qzz.io' && route !== 'wallet') {
+      window.location.href = route === 'explorer' ? 'https://starslab.qzz.io/explorer' : 'https://starslab.qzz.io/';
+      return;
+    }
+    if (window.location.hostname === 'starslab.qzz.io' && route === 'wallet') {
+      window.location.href = 'https://wallet.starslab.qzz.io/';
+      return;
+    }
   }
   currentRoute.set(route);
   // Update URL without page reload
@@ -26,13 +32,13 @@ export function navigateTo(route: Route) {
 }
 
 function parseRoute(pathname: string): Route {
+  if (isWalletHost()) {
+    return 'wallet';
+  }
   if (pathname === '/explorer' || pathname.startsWith('/explorer/')) {
     return 'explorer';
   }
   if (pathname === '/wallet' || pathname.startsWith('/wallet/')) {
-    return 'wallet';
-  }
-  if (isWalletHost() && (pathname === '/' || pathname === '')) {
     return 'wallet';
   }
   return 'home';
